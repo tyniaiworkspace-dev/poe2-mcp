@@ -34,12 +34,11 @@ Date: 2025-10-22
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Any
 from enum import Enum
 
 # Import existing calculators
 from .defense_calculator import DefenseCalculator, DefenseConstants
-from .resource_calculator import ResourceCalculator, AttributeStats
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +80,7 @@ class DefensiveStats:
     chaos_res: float = 0.0
     phys_taken_as_elemental: float = 0.0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate defensive stats."""
         if self.life < 0:
             raise ValueError("Life cannot be negative")
@@ -166,7 +165,7 @@ class EHPCalculator:
     4. Content viability - "can I survive endgame?"
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize EHP calculator with defense calculator."""
         self.defense_calc = DefenseCalculator()
         logger.info("EHPCalculator initialized for Path of Exile 2")

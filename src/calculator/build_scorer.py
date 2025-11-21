@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class BuildScorer:
     """Analyzes and scores PoE2 builds"""
 
-    def __init__(self, db_manager):
+    def __init__(self, db_manager) -> None:
         self.db_manager = db_manager
 
     async def analyze_build(self, character_data: Dict[str, Any]) -> Dict[str, Any]:

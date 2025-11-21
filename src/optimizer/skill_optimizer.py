@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class SkillOptimizer:
     """Optimizes skill gem setups"""
 
-    def __init__(self, db_manager):
+    def __init__(self, db_manager) -> None:
         self.db_manager = db_manager
 
     async def optimize(

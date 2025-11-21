@@ -17,7 +17,7 @@ class CharacterComparator:
     Focuses on comparing against higher-level, higher-DPS players using same skills
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def compare_to_top_players(

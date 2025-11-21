@@ -233,7 +233,7 @@ class StunCalculator:
     HEAVY_STUN_THRESHOLD: float = 100.0  # Heavy Stun at 100% meter
     HEAVY_STUN_DURATION: float = 3.0  # 3 seconds Heavy Stun duration
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Stun Calculator."""
         self._entity_meters: Dict[str, HeavyStunMeter] = {}
         logger.info("StunCalculator initialized")

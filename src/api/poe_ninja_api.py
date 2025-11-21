@@ -8,7 +8,7 @@ import json
 import logging
 from typing import Dict, List, Optional, Any
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
+from datetime import datetime
 
 try:
     from ..api.rate_limiter import RateLimiter

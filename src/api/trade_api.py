@@ -9,18 +9,15 @@ import httpx
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any
-from datetime import datetime
 
 try:
     from ..config import settings
     from .rate_limiter import RateLimiter
     from .cache_manager import CacheManager
-    from ..analyzer.gear_evaluator import GearEvaluator, GearStats, UpgradeRecommendation
 except ImportError:
     from src.config import settings
     from src.api.rate_limiter import RateLimiter
     from src.api.cache_manager import CacheManager
-    from src.analyzer.gear_evaluator import GearEvaluator, GearStats, UpgradeRecommendation
 
 logger = logging.getLogger(__name__)
 

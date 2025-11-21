@@ -17,7 +17,7 @@ Date: 2025-10-22
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from enum import Enum
 
 
@@ -49,7 +49,7 @@ class AttributeStats:
     dexterity: int = 0
     intelligence: int = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate attributes are non-negative."""
         if self.strength < 0 or self.dexterity < 0 or self.intelligence < 0:
             raise ValueError("Attributes cannot be negative")
@@ -118,7 +118,7 @@ class ResourcePool:
     reserved_flat: float = 0.0
     reserved_percent: float = 0.0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize current to maximum if not set."""
         if self.current == 0.0:
             self.current = self.maximum
@@ -168,7 +168,7 @@ class ResourceCalculator:
     ACCURACY_PER_LEVEL = 6
     ACCURACY_PER_DEXTERITY = 6
 
-    def __init__(self, character_level: int, attributes: AttributeStats):
+    def __init__(self, character_level: int, attributes: AttributeStats) -> None:
         """
         Initialize resource calculator.
 
@@ -541,7 +541,7 @@ class ResourceCalculator:
 
         return is_overflowing, overflow_amount, active_reservations
 
-    def get_spirit_reservation_details(self) -> List[Dict[str, any]]:
+    def get_spirit_reservation_details(self) -> List[Dict[str, Any]]:
         """
         Get detailed information about all Spirit reservations.
 
@@ -656,7 +656,7 @@ class ResourceCalculator:
         mana_mods: Optional[ResourceModifiers] = None,
         es_mods: Optional[ResourceModifiers] = None,
         spirit_mods: Optional[ResourceModifiers] = None
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """
         Calculate all resources and return a comprehensive summary.
 

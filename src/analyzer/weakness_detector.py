@@ -23,10 +23,7 @@ from enum import Enum
 
 # Import all our calculator modules
 from ..calculator.defense_calculator import DefenseCalculator, DefenseConstants
-from ..calculator.resource_calculator import ResourceCalculator, AttributeStats
-from ..calculator.ehp_calculator import EHPCalculator, DefensiveStats, ThreatProfile, DamageType
-from ..calculator.spirit_calculator import SpiritCalculator
-from ..calculator.damage_calculator import DamageCalculator
+from ..calculator.ehp_calculator import EHPCalculator, DefensiveStats, ThreatProfile
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +133,7 @@ class WeaknessDetector:
         ...     print(f"[{weakness.severity.value.upper()}] {weakness.title}")
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize weakness detector with calculator modules."""
         self.defense_calc = DefenseCalculator()
         self.ehp_calc = EHPCalculator()

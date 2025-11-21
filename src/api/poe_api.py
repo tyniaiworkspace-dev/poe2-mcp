@@ -3,10 +3,9 @@ Official Path of Exile API Client
 Handles character data retrieval with OAuth 2.0 support
 """
 
-import asyncio
 import logging
 from typing import Optional, Dict, Any, List
-from datetime import datetime, timedelta
+from datetime import datetime
 import httpx
 
 try:
@@ -59,7 +58,6 @@ class PoEAPIClient:
 
         # TODO: Implement full OAuth 2.0 flow
         # For now, we'll use public API endpoints that don't require auth
-        pass
 
     async def get_character(
         self,
