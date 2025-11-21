@@ -9,7 +9,7 @@ Date: 2025-10-24
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -112,7 +112,7 @@ class ContentReadinessChecker:
         ...     print(f"Gap: {gap}")
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.content_requirements = self._initialize_requirements()
 
     def _initialize_requirements(self) -> Dict[str, DefenseRequirement]:

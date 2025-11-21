@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class QueryHandler:
     """Handles natural language queries about builds"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         if not settings.ANTHROPIC_API_KEY:
             logger.warning("Anthropic API key not set. AI features will be limited.")
             self.client = None

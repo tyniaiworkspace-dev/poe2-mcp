@@ -8,10 +8,8 @@ import asyncio
 import json
 import logging
 import sys
-from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-from contextlib import asynccontextmanager
 
 # Add parent directory to path for imports when run directly
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -23,7 +21,7 @@ import mcp.types as types
 
 # Import with fallback for both direct and module execution
 try:
-    from .config import settings, BASE_DIR
+    from .config import settings
     from .database.manager import DatabaseManager
     from .api.poe_api import PoEAPIClient
     from .api.rate_limiter import RateLimiter
@@ -36,7 +34,7 @@ try:
     from .optimizer.skill_optimizer import SkillOptimizer
     from .analyzer.top_player_fetcher import TopPlayerFetcher
     from .analyzer.character_comparator import CharacterComparator
-    from .analyzer.weakness_detector import WeaknessDetector, CharacterData
+    from .analyzer.weakness_detector import WeaknessDetector
     from .analyzer.gear_evaluator import GearEvaluator
     from .calculator.ehp_calculator import EHPCalculator
     from .calculator.spirit_calculator import SpiritCalculator
@@ -53,7 +51,7 @@ try:
     from .analyzer.content_readiness_checker import ContentReadinessChecker
 except ImportError:
     # Fallback for direct execution
-    from src.config import settings, BASE_DIR
+    from src.config import settings
     from src.database.manager import DatabaseManager
     from src.api.poe_api import PoEAPIClient
     from src.api.rate_limiter import RateLimiter
@@ -66,7 +64,7 @@ except ImportError:
     from src.optimizer.skill_optimizer import SkillOptimizer
     from src.analyzer.top_player_fetcher import TopPlayerFetcher
     from src.analyzer.character_comparator import CharacterComparator
-    from src.analyzer.weakness_detector import WeaknessDetector, CharacterData
+    from src.analyzer.weakness_detector import WeaknessDetector
     from src.analyzer.gear_evaluator import GearEvaluator
     from src.calculator.ehp_calculator import EHPCalculator
     from src.calculator.spirit_calculator import SpiritCalculator
@@ -112,7 +110,7 @@ class PoE2BuildOptimizerMCP:
     Provides AI-powered build recommendations through MCP protocol
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.server = Server("poe2-build-optimizer")
         self.db_manager: Optional[DatabaseManager] = None
         self.poe_api: Optional[PoEAPIClient] = None
@@ -2706,7 +2704,7 @@ Consider:
 
             # Check if playwright is installed
             try:
-                from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
+                from playwright.async_api import async_playwright
             except ImportError:
                 return [types.TextContent(
                     type="text",

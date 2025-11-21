@@ -114,7 +114,7 @@ class ArchetypeClassifier:
         >>> print(f"Match score: {match.match_score}/100")
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize classifier with archetype signatures."""
         self.archetypes = self._define_archetypes()
         logger.info(f"ArchetypeClassifier initialized with {len(self.archetypes)} archetypes")

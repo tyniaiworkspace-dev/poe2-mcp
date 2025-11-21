@@ -7,7 +7,6 @@ Fetches character data from multiple sources with intelligent fallback:
 4. Direct web scraping (last resort)
 """
 
-import asyncio
 import logging
 import re
 from typing import Optional, Dict, Any, List

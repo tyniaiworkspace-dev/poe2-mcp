@@ -3,7 +3,6 @@ Web Scraper for PoE2 Game Data
 Scrapes item data, skill gems, and passive tree information from poe2db.tw and other sources
 """
 
-import asyncio
 import httpx
 import json
 import re
@@ -28,7 +27,7 @@ class PoE2DataScraper:
     Primary source: poe2db.tw
     """
 
-    def __init__(self, rate_limiter: Optional[RateLimiter] = None):
+    def __init__(self, rate_limiter: Optional[RateLimiter] = None) -> None:
         self.base_url = settings.POE2DB_BASE_URL
         self.rate_limiter = rate_limiter or RateLimiter(rate_limit=30)
         self.client = httpx.AsyncClient(

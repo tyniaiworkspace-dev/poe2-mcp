@@ -8,7 +8,7 @@ Author: Claude
 Date: 2025-10-24
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 from dataclasses import dataclass
 from enum import Enum
 
@@ -39,7 +39,7 @@ class MechanicExplanation:
     important_notes: List[str] = None
     changed_from_poe1: Optional[str] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.examples is None:
             self.examples = []
         if self.common_questions is None:
@@ -60,7 +60,7 @@ class PoE2MechanicsKnowledgeBase:
         >>> print(freeze_info.detailed_explanation)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.mechanics: Dict[str, MechanicExplanation] = {}
         self._initialize_mechanics()
 

@@ -123,7 +123,7 @@ class GemSynergyCalculator:
         ...     print(f"{result.spell_name}: {result.total_dps:.1f} DPS")
     """
 
-    def __init__(self, spell_db_path: Optional[Path] = None, support_db_path: Optional[Path] = None):
+    def __init__(self, spell_db_path: Optional[Path] = None, support_db_path: Optional[Path] = None) -> None:
         """
         Initialize calculator with gem databases
 

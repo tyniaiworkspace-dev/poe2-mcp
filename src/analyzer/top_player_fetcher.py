@@ -5,7 +5,7 @@ Finds top ladder players using similar skills for comparison
 
 import asyncio
 import logging
-from typing import Dict, List, Any, Set, Optional
+from typing import Dict, List, Any, Optional
 
 try:
     from ..api.poe_ninja_api import PoeNinjaAPI

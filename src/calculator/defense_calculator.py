@@ -12,7 +12,7 @@ All formulas are specific to Path of Exile 2 and differ from PoE1 in key areas.
 """
 
 import logging
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -103,7 +103,7 @@ class DefenseCalculator:
     validation, and detailed result objects.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the defense calculator."""
         logger.info("DefenseCalculator initialized for Path of Exile 2")
 

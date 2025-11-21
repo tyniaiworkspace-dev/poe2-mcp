@@ -7,9 +7,9 @@ from typing import Dict, Any, List, Optional
 from sqlalchemy import select
 
 try:
-    from ..database.models import UniqueItem, Item
+    from ..database.models import UniqueItem
 except ImportError:
-    from src.database.models import UniqueItem, Item
+    from src.database.models import UniqueItem
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class GearOptimizer:
         "belt": ["Belt"]
     }
 
-    def __init__(self, db_manager):
+    def __init__(self, db_manager) -> None:
         self.db_manager = db_manager
 
     async def optimize(

@@ -19,8 +19,6 @@ import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, Union
 from enum import Enum
-from functools import reduce
-import operator
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -62,7 +60,7 @@ class DamageRange:
     min_damage: float
     max_damage: float
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate damage range after initialization."""
         if self.min_damage < 0:
             raise ValueError(f"Minimum damage cannot be negative: {self.min_damage}")
@@ -239,7 +237,7 @@ class CriticalStrikeConfig:
     crit_chance: float = 0.0
     crit_multiplier: float = 100.0  # PoE2 default: +100% damage on crit
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate critical strike configuration."""
         if not 0 <= self.crit_chance <= 100:
             raise ValueError(f"Critical chance must be between 0 and 100: {self.crit_chance}")
@@ -291,7 +289,7 @@ class DamageCalculator:
         195.0
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the damage calculator."""
         logger.info("DamageCalculator initialized")
 

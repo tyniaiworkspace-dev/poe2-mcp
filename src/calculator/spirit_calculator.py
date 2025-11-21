@@ -24,7 +24,7 @@ Date: 2025-10-22
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Set
+from typing import Any, Dict, List, Optional, Tuple
 from enum import Enum
 import math
 
@@ -66,7 +66,7 @@ class SpiritSource:
     source_type: SpiritSourceType
     enabled: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate source."""
         if self.amount < 0:
             raise ValueError("Spirit amount cannot be negative")
@@ -84,7 +84,7 @@ class SupportGem:
     name: str
     multiplier: float
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate multiplier."""
         if self.multiplier < 1.0:
             raise ValueError("Support multiplier must be >= 1.0")
@@ -110,7 +110,7 @@ class SpiritReservation:
     enabled: bool = True
     priority: int = 5  # 1-10 scale (1 = essential, 10 = least important)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate reservation."""
         if self.base_cost < 0:
             raise ValueError("Base cost cannot be negative")
@@ -142,7 +142,7 @@ class SpiritReservation:
         # Spirit costs always round UP in PoE2
         return math.ceil(cost)
 
-    def get_cost_breakdown(self) -> Dict[str, any]:
+    def get_cost_breakdown(self) -> Dict[str, Any]:
         """
         Get detailed breakdown of cost calculation.
 
@@ -281,7 +281,7 @@ class SpiritCalculator:
         75
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize Spirit calculator."""
         self.sources: List[SpiritSource] = []
         self.reservations: List[SpiritReservation] = []
@@ -592,7 +592,7 @@ class SpiritCalculator:
 
     # === Analysis and Reporting ===
 
-    def get_reservation_details(self) -> List[Dict[str, any]]:
+    def get_reservation_details(self) -> List[Dict[str, Any]]:
         """
         Get detailed information about all Spirit reservations.
 
@@ -616,7 +616,7 @@ class SpiritCalculator:
             })
         return details
 
-    def get_source_details(self) -> List[Dict[str, any]]:
+    def get_source_details(self) -> List[Dict[str, Any]]:
         """
         Get detailed information about all Spirit sources.
 
@@ -633,7 +633,7 @@ class SpiritCalculator:
             })
         return details
 
-    def get_spirit_summary(self) -> Dict[str, any]:
+    def get_spirit_summary(self) -> Dict[str, Any]:
         """
         Get comprehensive Spirit summary.
 
@@ -806,7 +806,7 @@ class SpiritCalculator:
 
         return actions
 
-    def suggest_optimal_configuration(self) -> Dict[str, any]:
+    def suggest_optimal_configuration(self) -> Dict[str, Any]:
         """
         Suggest optimal Spirit configuration to maximize usage without overflow.
 
@@ -889,7 +889,7 @@ class SpiritCalculator:
 
     # === Export/Import ===
 
-    def export_configuration(self) -> Dict[str, any]:
+    def export_configuration(self) -> Dict[str, Any]:
         """
         Export complete Spirit configuration.
 
@@ -902,7 +902,7 @@ class SpiritCalculator:
             'summary': self.get_spirit_summary()
         }
 
-    def import_configuration(self, config: Dict[str, any]) -> None:
+    def import_configuration(self, config: Dict[str, Any]) -> None:
         """
         Import Spirit configuration.
 

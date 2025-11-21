@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class RecommendationEngine:
     """Generates AI-powered build recommendations"""
 
-    def __init__(self, db_manager):
+    def __init__(self, db_manager) -> None:
         self.db_manager = db_manager
         if settings.ANTHROPIC_API_KEY:
             self.client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)

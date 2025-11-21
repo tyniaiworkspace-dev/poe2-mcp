@@ -17,7 +17,7 @@ Date: 2025-10-22
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -130,7 +130,7 @@ class BuildSuccessPredictor:
         ...     print("Blockers:", [b.stat for b in result.blockers])
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize predictor with content requirements."""
         self.requirements = self._define_content_requirements()
         logger.info(f"BuildSuccessPredictor initialized with {len(self.requirements)} content types")

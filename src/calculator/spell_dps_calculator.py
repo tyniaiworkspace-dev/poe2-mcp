@@ -27,7 +27,7 @@ class SpellStats:
     base_cast_time: float = 1.0  # seconds
     damage_types: List[str] = None  # ['fire', 'cold', 'lightning', etc.]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.damage_types is None:
             self.damage_types = []
 
@@ -58,7 +58,7 @@ class CharacterModifiers:
     maximum_mana: float = 0.0
     has_archmage: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.more_multipliers is None:
             self.more_multipliers = []
 

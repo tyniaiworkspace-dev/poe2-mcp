@@ -5,16 +5,14 @@ Handles database initialization, queries, and management
 
 import logging
 from typing import List, Dict, Any, Optional
-from pathlib import Path
-from sqlalchemy import create_engine, select, and_, or_
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import Session
 
-from .models import Base, Item, UniqueItem, PassiveNode, SkillGem, SupportGem, SavedBuild
+from .models import Base, Item, PassiveNode, SkillGem, SavedBuild
 try:
-    from ..config import settings, DATA_DIR
+    from ..config import settings
 except ImportError:
-    from src.config import settings, DATA_DIR
+    from src.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +20,7 @@ logger = logging.getLogger(__name__)
 class DatabaseManager:
     """Manages database connections and operations"""
 
-    def __init__(self, db_url: Optional[str] = None):
+    def __init__(self, db_url: Optional[str] = None) -> None:
         self.db_url = db_url or settings.DATABASE_URL
 
         # Convert sqlite:/// to sqlite+aiosqlite:/// for async support

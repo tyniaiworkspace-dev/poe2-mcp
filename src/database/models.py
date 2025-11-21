@@ -3,10 +3,8 @@ SQLAlchemy database models for PoE2 game data
 """
 
 from datetime import datetime
-from typing import Optional, List
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, JSON, ForeignKey, Text
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 

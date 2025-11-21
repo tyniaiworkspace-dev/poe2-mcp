@@ -6,8 +6,7 @@ Implements token bucket algorithm with adaptive rate limiting
 import asyncio
 import time
 import logging
-from typing import Dict, Optional
-from datetime import datetime, timedelta
+from typing import Dict
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +126,7 @@ class MultiRateLimiter:
     Manages multiple rate limiters for different API endpoints
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.limiters: Dict[str, RateLimiter] = {}
 
     def get_limiter(self, endpoint: str, rate_limit: int = 10) -> RateLimiter:

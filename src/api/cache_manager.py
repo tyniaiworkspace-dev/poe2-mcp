@@ -3,14 +3,11 @@ Multi-tier caching system
 Supports in-memory, Redis, and SQLite caching
 """
 
-import asyncio
 import json
 import logging
 import pickle
-import sqlite3
 from typing import Any, Optional, Dict
 from datetime import datetime, timedelta
-from pathlib import Path
 import aiosqlite
 
 try:
@@ -29,7 +26,7 @@ class CacheManager:
     L3: SQLite (persistent, slower)
     """
 
-    def __init__(self, enable_redis: bool = False):
+    def __init__(self, enable_redis: bool = False) -> None:
         self.enable_redis = enable_redis and settings.REDIS_ENABLED
 
         # L1: In-memory cache
