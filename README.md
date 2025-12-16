@@ -1,5 +1,9 @@
 # Path of Exile 2 Build Optimizer MCP
 
+> **Community Project Disclaimer**
+>
+> This is an independent, fan-made community project built out of love for Path of Exile 2. It is **not affiliated with, endorsed by, or officially connected to Grinding Gear Games** in any way. Path of Exile is a trademark of Grinding Gear Games. All game data and assets remain the property of their respective owners.
+
 A Model Context Protocol (MCP) server for Path of Exile 2 character analysis and optimization. Provides 32 MCP tools for AI-powered build analysis, passive tree analysis, item mod validation, support gem validation, and Path of Building integration.
 
 ## What is This?
@@ -385,7 +389,9 @@ MCP Protocol:
 
 ## License
 
-Private project for personal use.
+MIT License - See [LICENSE](LICENSE) for details.
+
+This is a community project. Not affiliated with Grinding Gear Games.
 
 ---
 

@@ -3,48 +3,50 @@
 All notable changes to this project will be documented in this file.
 Format based on Path of Building changelog style, adapted for MCP tooling.
 
----
-
-## Version 0.2.1 (2025-12-16)
-
---- Token Optimization ---
-* Add pagination support to list tools with `limit` (default 20) and `offset` parameters
-* Add detail level filtering (`summary`, `standard`, `full`) to control response verbosity
-* Add compact output format option with abbreviated JSON keys for programmatic consumption
-* Updated tools: `list_all_supports`, `list_all_spells`, `list_all_keystones`, `list_all_mods`
-
---- Infrastructure ---
-* Add `src/utils/response_formatter.py` utility module for pagination, filtering, and formatting
-* Add comprehensive test suite for token optimization features (`tests/test_token_optimization.py`)
+> **Community Project**: This is an independent, fan-made project built out of love for Path of Exile 2. Not affiliated with or endorsed by Grinding Gear Games.
 
 ---
 
-## Version 0.2.0 (2025-12-16)
+## Version 1.0.0 (2025-12-16) - First Major Release
+
+The first stable release of the PoE2 Build Optimizer MCP server. Provides 32 MCP tools for AI-powered character analysis and build optimization.
+
+--- Core Features ---
+* 32 registered MCP tools for character analysis, validation, and optimization
+* Multi-source character fetching (poe.ninja, official API, HTML scrape fallback)
+* Path of Building import/export support
+* Comprehensive game mechanics knowledge base
 
 --- MCP Tools ---
-* Add 6 new MCP mod tools (#19):
-  - `search_mods` - search item mods by name, type, or tags
-  - `get_mod_details` - get complete mod information
-  - `find_mods_for_item` - find applicable mods for item class
-  - `get_mod_generation_weights` - get spawn weights by item type
-  - `compare_mod_tiers` - compare tiers of a mod family
-  - `search_mod_effects` - search mods by stat effects
-* Add 6 new MCP tools for passive tree and base item data (#18):
-  - `get_passive_node` - get passive skill node details
-  - `search_passive_nodes` - search passives by name or stats
-  - `get_keystone` - get keystone passive details
-  - `list_keystones` - enumerate all keystones
-  - `get_base_item` - get base item type details
-  - `search_base_items` - search base items by class or properties
+* Character analysis: `analyze_character`, `compare_to_top_players`, `import_poe_ninja_url`
+* Validation tools: `validate_support_combination`, `validate_build_constraints`
+* Gem inspection: `inspect_support_gem`, `inspect_spell_gem`, `list_all_supports`, `list_all_spells`
+* Passive tree: `list_all_keystones`, `inspect_keystone`, `list_all_notables`, `inspect_passive_node`
+* Base items: `list_all_base_items`, `inspect_base_item`
+* Item mods: `inspect_mod`, `list_all_mods`, `search_mods_by_stat`, `get_mod_tiers`, `validate_item_mods`
+* Path of Building: `import_pob`, `export_pob`, `get_pob_code`
+* Knowledge: `explain_mechanic`, `get_formula`
 
---- Bug Fixes ---
-* Fix `list_all_supports` null handling when gems lack tags (#17)
+--- Token Optimization ---
+* Pagination support with `limit` (default 20) and `offset` parameters
+* Detail level filtering (`summary`, `standard`, `full`) for response verbosity control
+* Compact output format with abbreviated JSON keys for programmatic consumption
+
+--- Data Sources ---
+* 4,975+ passive tree nodes with full stat text
+* 335+ ascendancy nodes (99% coverage)
+* 14,269 item modifiers (prefixes, suffixes, implicits)
+* Complete skill gem data from Path of Building
+* Support gem effects and interaction data
 
 --- Infrastructure ---
-* Overhaul README documentation (#17)
+* SQLite database with async support (aiosqlite)
+* Multi-tier caching (memory -> Redis optional -> SQLite)
+* Rate limiting with exponential backoff
+* Comprehensive test suite
 
 ---
 
-## Prior History
+## Prior Development History
 
-See git commits before 2025-12-16 for historical changes.
+See git commits before 2025-12-16 for development history leading to v1.0.0.
