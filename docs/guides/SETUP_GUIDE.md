@@ -1,293 +1,221 @@
-# PoE2 MCP Server - Complete Setup Guide
+# PoE2 MCP Server - Setup Guide
 
-**Date:** October 22, 2025
-**Status:** Database exists but needs population
-
----
-
-## Current Status
-
-### ✅ What's Working
-- MCP server starts successfully
-- All 19 tools registered with handlers
-- All calculators initialized
-- Database file exists with all tables created
-- Character fetcher operational
-- Trade API client ready
-
-### ⚠️ What Needs Setup
-
-1. **Database is Empty** - 0 items in database
-2. **Character Profile Private** - DoesFireWorkGoodNow not fetchable
-3. **No Anthropic API Key** - AI recommendations disabled
-4. **No POESESSID** - Trade search unavailable
-
----
+> **Community Project**: This is an independent, fan-made project. Not affiliated with or endorsed by Grinding Gear Games.
 
 ## Quick Setup (5 Minutes)
 
-### Step 1: Populate Database ⏱️ **2-3 minutes**
+### Step 1: Install the Package
 
-The database exists but has no items. Run the population script:
-
-```powershell
-cd C:\Users\tanki\ClaudesPathOfExile2EnhancementService
-python scripts/populate_database.py
+**Option A: PyPI (Recommended)**
+```bash
+pip install poe2-mcp
 ```
 
-**What it does:**
-- Scrapes unique items from poe2db.tw
-- Scrapes base items from poe2db.tw
-- Scrapes skill gems and support gems
-- Fetches item prices from poe.ninja
-- Populates all database tables
-
-**Expected output:**
-```
-Starting database population
-Populating unique items... (X items added)
-Populating base items... (X items added)
-Populating skill gems... (X items added)
-Populating support gems... (X items added)
-Database population complete!
+**Option B: From Source**
+```bash
+git clone https://github.com/HivemindOverlord/poe2-mcp.git
+cd poe2-mcp
+pip install -e .
 ```
 
-**Time:** ~2-3 minutes (depends on internet speed)
+**Option C: .mcpb Bundle**
+1. Download `poe2-mcp-1.0.0.mcpb` from [GitHub Releases](https://github.com/HivemindOverlord/poe2-mcp/releases/latest)
+2. In Claude Desktop: Settings > Extensions > Install Extension
+3. Select the downloaded file
 
----
+### Step 2: Configure Your AI Assistant
 
-### Step 2: Make Character Profile Public ⏱️ **30 seconds**
+#### Claude Desktop
 
-Your character `DoesFireWorkGoodNow` can't be fetched because the profile is private.
+Edit your config file:
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
-**Fix:**
-1. Go to: https://www.pathofexile.com/account/view-profile/Tomawar40-2671/privacy
-2. Uncheck "Hide Characters tab"
-3. Click "Update"
-4. Wait 5-10 minutes for changes to propagate
-
-**Verify it works:**
-Visit: https://poe.ninja/poe2/profile/Tomawar40-2671/character/DoesFireWorkGoodNow
-
-You should see your character data.
-
----
-
-### Step 3: Add API Keys (Optional) ⏱️ **1 minute**
-
-#### Anthropic API Key (for AI recommendations)
-
-```powershell
-# Edit .env file
-notepad .env
-
-# Add this line:
-ANTHROPIC_API_KEY=sk-ant-YOUR_KEY_HERE
+```json
+{
+  "mcpServers": {
+    "poe2-optimizer": {
+      "command": "poe2-mcp"
+    }
+  }
+}
 ```
 
-Get your key at: https://console.anthropic.com/settings/keys
-
-#### POESESSID (for trade search)
-
-```powershell
-# Edit .env file
-notepad .env
-
-# Add this line:
-POESESSID=YOUR_COOKIE_VALUE
+Or if running from source:
+```json
+{
+  "mcpServers": {
+    "poe2-optimizer": {
+      "command": "python",
+      "args": ["/path/to/poe2-mcp/launch.py"]
+    }
+  }
+}
 ```
 
-**How to get POESESSID:**
-1. Login to pathofexile.com in Chrome/Edge
-2. Press F12 → Go to Application/Storage tab
-3. Click Cookies → https://www.pathofexile.com
-4. Find `POESESSID` and copy the Value
-5. Paste into `.env` file
+Restart Claude Desktop after saving.
 
----
+### Step 3: Verify Installation
 
-## Testing After Setup
+Ask your AI assistant:
+> "Use the health_check tool to verify the PoE2 MCP server is working"
+
+Expected response includes:
+- Database connected
+- 32 tools registered
+- All handlers present
+
+## What's Included
+
+### 32 MCP Tools
+
+| Category | Tools |
+|----------|-------|
+| Character Analysis | `analyze_character`, `compare_to_top_players`, `import_poe_ninja_url`, `analyze_passive_tree` |
+| Validation | `validate_support_combination`, `validate_build_constraints` |
+| Gem Data | `inspect_support_gem`, `inspect_spell_gem`, `list_all_supports`, `list_all_spells` |
+| Passive Tree | `list_all_keystones`, `inspect_keystone`, `list_all_notables`, `inspect_passive_node` |
+| Base Items | `list_all_base_items`, `inspect_base_item` |
+| Item Mods | `inspect_mod`, `list_all_mods`, `search_mods_by_stat`, `get_mod_tiers`, `validate_item_mods`, `get_available_mods` |
+| Path of Building | `import_pob`, `export_pob`, `get_pob_code` |
+| Trade | `search_items`, `search_trade_items`, `setup_trade_auth` |
+| Knowledge | `explain_mechanic`, `get_formula` |
+| Utility | `health_check`, `clear_cache` |
+
+### Game Data
+
+- 4,975+ passive tree nodes
+- 335+ ascendancy nodes (99% coverage)
+- 14,269 item modifiers
+- Complete skill gem data
+- Support gem interactions
+
+## Optional Setup
+
+### Trade API Authentication
+
+For `search_trade_items` to work, authenticate with pathofexile.com:
+
+```bash
+pip install playwright
+playwright install chromium
+python -m poe2_mcp.scripts.setup_trade_auth
+```
+
+Or manually:
+1. Log into pathofexile.com in Chrome/Edge
+2. Press F12 > Application > Cookies > pathofexile.com
+3. Copy `POESESSID` value
+4. Add to `.env`: `POESESSID=your_cookie_value`
+
+### Environment Variables
+
+Create `.env` in your working directory (optional):
+
+```bash
+# For AI-enhanced features (optional)
+ANTHROPIC_API_KEY=sk-ant-...
+
+# For trade search (optional)
+POESESSID=your_session_cookie
+
+# Debug mode
+DEBUG=false
+LOG_LEVEL=INFO
+```
+
+## Testing the Setup
 
 ### Test 1: Health Check
 
-```json
-{
-  "tool": "health_check",
-  "arguments": {"verbose": true}
-}
-```
-
-**Expected after fixes:**
-```
-✓ Database connected (10 tables found)
-✓ Items table populated: X,XXX items
-✓ Character fetcher initialized
-✓ All handlers present
-```
-
----
+Ask your AI:
+> "Run health_check with verbose=true"
 
 ### Test 2: Character Analysis
 
-```json
-{
-  "tool": "analyze_character",
-  "arguments": {
-    "account": "Tomawar40-2671",
-    "character": "DoesFireWorkGoodNow"
-  }
-}
-```
+Ask your AI:
+> "Analyze the character 'YourCharacterName' from account 'YourAccountName'"
 
-**Expected:** Full character analysis with weaknesses and recommendations
+**Note**: Your character must be:
+- On public profile (pathofexile.com > Account > Privacy Settings)
+- Indexed on poe.ninja (usually requires being on the ladder)
 
----
+### Test 3: Keystone Lookup
 
-### Test 3: Item Search
+Ask your AI:
+> "Tell me about the Chaos Inoculation keystone"
 
-```json
-{
-  "tool": "search_items",
-  "arguments": {
-    "query": "ring"
-  }
-}
-```
+### Test 4: Support Gem Validation
 
-**Expected:** List of rings from the database
-
----
-
-### Test 4: Weakness Detection
-
-```json
-{
-  "tool": "detect_character_weaknesses",
-  "arguments": {
-    "character_data": {
-      "level": 92,
-      "class": "Stormweaver",
-      "life": 1413,
-      "energy_shield": 4847,
-      "fire_res": -2,
-      "cold_res": -8,
-      "lightning_res": 17,
-      "chaos_res": 0,
-      "armor": 0,
-      "evasion": 855,
-      "block_chance": 0
-    }
-  }
-}
-```
-
-**Expected:** Prioritized list of weaknesses with fix suggestions
-
----
-
-### Test 5: EHP Calculation
-
-```json
-{
-  "tool": "calculate_character_ehp",
-  "arguments": {
-    "character_data": {
-      "life": 1413,
-      "energy_shield": 4847,
-      "fire_res": -2,
-      "cold_res": -8,
-      "lightning_res": 17,
-      "chaos_res": 0,
-      "armor": 0,
-      "evasion": 855,
-      "block_chance": 0
-    }
-  }
-}
-```
-
-**Expected:** EHP for all 5 damage types with status indicators
-
----
-
-## What Was Fixed Today
-
-### Round 1: Missing Handlers
-✅ Added 6 missing handler methods
-✅ Added health_check diagnostic tool
-✅ All 19 tools now have complete implementations
-
-### Round 2: Character Fetching
-✅ Fixed health_check typo (`character_fetcher` → `char_fetcher`)
-✅ Fixed poe.ninja URLs (`/builds/` → `/profile/`)
-✅ Enhanced error messages with troubleshooting steps
-
-### Round 3: Database
-✅ Fixed health check to use `db_manager` instead of `cursor`
-✅ Updated to use SQLAlchemy async queries
-✅ Identified population script location
-
----
+Ask your AI:
+> "Can I use Faster Projectiles and Slower Projectiles together?"
 
 ## Troubleshooting
 
-### Database Population Fails
+### "Server not found" in Claude Desktop
 
-**Error:** "Cannot connect to poe2db.tw"
-**Fix:** Check your internet connection, the site might be temporarily down
+1. Verify Python is in your PATH: `python --version`
+2. Check config path is absolute, not relative
+3. Try running directly: `poe2-mcp` or `python launch.py`
+4. Check Claude Desktop logs for errors
 
-**Error:** "Rate limit exceeded"
-**Fix:** The script has rate limiting built-in, but if it fails, wait 5 minutes and retry
+### "No character found"
 
-### Character Still Not Fetchable
+1. Your profile must be public on pathofexile.com
+2. Character names are case-sensitive
+3. Try using a poe.ninja URL directly with `import_poe_ninja_url`
+4. Wait 10+ minutes after making profile public
 
-**After making profile public:**
-1. Wait 10 minutes for cache to clear
-2. Clear your browser cache
-3. Try the URL directly: https://poe.ninja/poe2/profile/Tomawar40-2671/character/DoesFireWorkGoodNow
-4. If still 404, the character might not be indexed yet (requires being on ladder or recently active)
+### Tools return empty results
 
-### Trade Search Not Working
+1. Run `health_check` to verify database status
+2. Ensure `data/` directory contains JSON files
+3. Try `clear_cache` and retry
 
-**Error:** "POESESSID required"
-**Fix:** Add your POESESSID cookie to `.env` as shown above
+### Windows-Specific Issues
 
-**Error:** "Authentication failed"
-**Fix:** Your POESESSID expired - get a fresh one from your browser
+If `poe2-mcp` command not found after pip install:
+```bash
+# Add Python Scripts to PATH, or run directly:
+python -m poe2_mcp
+```
+
+### Rate Limiting
+
+If you see rate limit errors:
+- The server has built-in rate limiting
+- Wait a few minutes and retry
+- Reduce request frequency
+
+## Updating
+
+### PyPI Install
+
+```bash
+pip install --upgrade poe2-mcp
+```
+
+### From Source
+
+```bash
+cd poe2-mcp
+git pull origin main
+pip install -e .
+```
+
+## Getting Help
+
+- [GitHub Issues](https://github.com/HivemindOverlord/poe2-mcp/issues)
+- [README](../../README.md)
+- [Architecture Docs](../ARCHITECTURE.md)
+
+## Requirements
+
+- Python 3.9 or higher
+- 50MB disk space (100MB+ with .mcpb bundle)
+- Internet connection for character data
 
 ---
 
-## Summary
-
-**Before Setup:**
-- 🔴 Database empty (0 items)
-- 🔴 Character profile private
-- 🔴 No API keys configured
-
-**After Setup:**
-- 🟢 Database populated (thousands of items)
-- 🟢 Character fetchable
-- 🟢 All tools functional
-- 🟡 AI features (need API key)
-- 🟡 Trade search (need POESESSID)
-
----
-
-## Next Steps
-
-1. **Run populate_database.py** (required)
-2. **Make profile public** (required for character analysis)
-3. **Add API keys** (optional, for enhanced features)
-4. **Test all tools** (use test cases above)
-5. **Enjoy your PoE2 optimization MCP!**
-
----
-
-**Total Setup Time:** ~5 minutes
-**Dependencies:** Python 3.8+, internet connection
-**Support:** Check logs in `logs/` directory if issues occur
-
----
-
-Generated: October 22, 2025
-By: Claude Code Enhancement Suite
+**Version**: 1.0.0
+**Last Updated**: December 2025

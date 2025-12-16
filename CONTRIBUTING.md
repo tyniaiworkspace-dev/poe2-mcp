@@ -1,5 +1,7 @@
 # Contributing to PoE2 Build Optimizer MCP
 
+> **Community Project**: This is an independent, fan-made project. Not affiliated with or endorsed by Grinding Gear Games.
+
 Thank you for your interest in this project!
 
 ## Usage and Forking

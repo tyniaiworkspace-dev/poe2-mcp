@@ -1,64 +1,81 @@
 # Development Guide
 
+> **Community Project**: This is an independent, fan-made project. Not affiliated with or endorsed by Grinding Gear Games.
+
 ## Getting Started
 
 ### Prerequisites
 ```bash
-python --version  # 3.9+
+python --version  # 3.9+ required
 pip --version
-git --version  # optional
+git --version
 ```
 
 ### Initial Setup
+
+**Option A: Development Install (Recommended)**
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+git clone https://github.com/HivemindOverlord/poe2-mcp.git
+cd poe2-mcp
+pip install -e ".[dev]"  # Installs with dev dependencies
+```
 
-# Run setup
-python setup.py
+**Option B: Standard Install**
+```bash
+pip install poe2-mcp
+```
 
-# Test the installation
+### Verify Installation
+```bash
+# Test MCP import
 python -c "import mcp; print('MCP installed')"
+
+# Run the server
+poe2-mcp  # or: python launch.py
 ```
 
 ## Project Structure
 
 ```
-ClaudesPathOfExile2EnhancementService/
+poe2-mcp/
 ├── src/
-│   ├── mcp_server.py       # Main MCP server
+│   ├── mcp_server.py       # Main MCP server (32 tools)
 │   ├── config.py           # Configuration management
-│   ├── api/                # API clients and utilities
-│   │   ├── poe_api.py      # PoE official API
-│   │   ├── rate_limiter.py # Rate limiting
-│   │   └── cache_manager.py# Caching system
+│   ├── api/                # API clients
+│   │   ├── character_fetcher.py  # Multi-source fetching
+│   │   ├── poe_ninja_api.py      # poe.ninja integration
+│   │   ├── trade_api.py          # Trade site API
+│   │   ├── rate_limiter.py       # Rate limiting
+│   │   └── cache_manager.py      # Multi-tier caching
+│   ├── data/               # Data providers
+│   │   ├── mod_data_provider.py  # Item mods (14,269)
+│   │   └── fresh_data_provider.py # Game data
 │   ├── database/           # Database layer
 │   │   ├── models.py       # SQLAlchemy models
-│   │   └── manager.py      # Database operations
+│   │   └── manager.py      # Async operations
 │   ├── calculator/         # Build calculations
-│   │   └── build_scorer.py # Build quality scoring
+│   │   ├── ehp_calculator.py
+│   │   ├── spirit_calculator.py
+│   │   ├── stun_calculator.py
+│   │   └── resource_calculator.py
+│   ├── analyzer/           # Analysis components
+│   │   ├── character_analyzer.py
+│   │   └── weakness_detector.py
 │   ├── optimizer/          # Optimization engines
 │   │   ├── gear_optimizer.py
-│   │   ├── passive_optimizer.py
-│   │   └── skill_optimizer.py
-│   ├── ai/                 # AI components
-│   │   ├── query_handler.py
-│   │   └── recommendation_engine.py
-│   └── pob/                # Path of Building integration
-│       ├── importer.py
-│       └── exporter.py
-├── data/                   # SQLite databases
-├── cache/                  # Cache storage
-├── logs/                   # Log files
-├── scripts/                # Utility scripts
+│   │   └── gem_synergy_calculator.py
+│   ├── knowledge/          # Game mechanics
+│   │   └── poe2_mechanics.py
+│   └── parsers/            # Data parsers
+│       └── passive_tree_resolver.py
+├── data/                   # Game data files (JSON)
 ├── tests/                  # Test suite
-├── web/                    # Web interface (future)
+├── docs/                   # Documentation
+├── scripts/                # Utility scripts
 ├── launch.py               # Quick launcher
-├── setup.py                # Setup script
-├── requirements.txt        # Python dependencies
-├── config.yaml             # Configuration file
-├── .env                    # Environment variables
-└── README.md               # Main documentation
+├── pyproject.toml          # Package configuration
+├── requirements.txt        # Dependencies
+└── config.yaml             # Runtime configuration
 ```
 
 ## Development Workflow
@@ -66,61 +83,67 @@ ClaudesPathOfExile2EnhancementService/
 ### 1. Making Changes
 
 ```bash
-# Create a feature branch (if using git)
-git checkout -b feature-name
+# Create a feature branch
+git checkout -b feature/your-feature-name
 
-# Make your changes
-# Edit files in src/
+# Make changes in src/
 
-# Test your changes
-python tests/test_your_feature.py
+# Run tests
+pytest tests/ -v
 
-# Run the server
+# Run the server locally
 python launch.py
 ```
 
 ### 2. Adding a New MCP Tool
-
-**Example**: Adding a "damage_breakdown" tool
 
 ```python
 # In src/mcp_server.py
 
 # 1. Add tool definition in _register_tools()
 types.Tool(
-    name="damage_breakdown",
-    description="Get detailed damage breakdown for a skill",
+    name="your_tool_name",
+    description="Description of what the tool does",
     inputSchema={
         "type": "object",
         "properties": {
-            "skill_name": {
+            "param_name": {
                 "type": "string",
-                "description": "Name of the skill to analyze"
+                "description": "Parameter description"
             }
         },
-        "required": ["skill_name"]
+        "required": ["param_name"]
     }
 )
 
-# 2. Add handler in handle_call_tool()
-elif name == "damage_breakdown":
-    return await self._handle_damage_breakdown(arguments)
+# 2. Add handler dispatch in handle_call_tool()
+elif name == "your_tool_name":
+    return await self._handle_your_tool_name(arguments)
 
 # 3. Implement the handler
-async def _handle_damage_breakdown(self, args: dict) -> List[types.TextContent]:
-    """Handle damage breakdown request"""
-    skill_name = args["skill_name"]
+async def _handle_your_tool_name(self, args: dict) -> List[types.TextContent]:
+    """Handle your tool request"""
+    try:
+        param = args.get("param_name")
 
-    # Your implementation here
-    breakdown = await self.calculate_damage(skill_name)
+        # Your implementation here
+        result = await self.some_component.do_work(param)
 
-    return [types.TextContent(
-        type="text",
-        text=f"Damage breakdown for {skill_name}:\n{breakdown}"
-    )]
+        return [types.TextContent(
+            type="text",
+            text=f"Result: {result}"
+        )]
+    except Exception as e:
+        logger.error(f"Tool error: {e}")
+        return [types.TextContent(
+            type="text",
+            text=f"Error: {str(e)}"
+        )]
 ```
 
-### 3. Adding a New Database Model
+**Important**: Never raise exceptions to MCP layer - always catch and return error TextContent.
+
+### 3. Adding Database Models
 
 ```python
 # In src/database/models.py
@@ -134,34 +157,9 @@ class NewModel(Base):
     data = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-# Then run migrations
-alembic revision --autogenerate -m "Add new model"
-alembic upgrade head
-```
-
-### 4. Adding an API Client
-
-```python
-# In src/api/new_api.py
-
-import httpx
-from ..config import settings
-from .rate_limiter import RateLimiter
-
-class NewAPIClient:
-    """Client for New API"""
-
-    def __init__(self, rate_limiter: RateLimiter = None):
-        self.base_url = settings.NEW_API_URL
-        self.rate_limiter = rate_limiter or RateLimiter(rate_limit=30)
-        self.client = httpx.AsyncClient()
-
-    async def fetch_data(self, endpoint: str):
-        """Fetch data from API"""
-        await self.rate_limiter.acquire()
-
-        response = await self.client.get(f"{self.base_url}/{endpoint}")
-        return response.json()
+# Apply with alembic
+# alembic revision --autogenerate -m "Add new model"
+# alembic upgrade head
 ```
 
 ## Testing
@@ -173,7 +171,7 @@ class NewAPIClient:
 pytest
 
 # Run specific test file
-pytest tests/test_api.py
+pytest tests/test_ehp_calculator.py
 
 # Run with coverage
 pytest --cov=src tests/
@@ -185,51 +183,48 @@ pytest -v
 ### Writing Tests
 
 ```python
-# tests/test_calculator.py
+# tests/test_your_feature.py
 
 import pytest
-from src.calculator.build_scorer import BuildScorer
+from src.calculator.your_calculator import YourCalculator
 
 @pytest.mark.asyncio
-async def test_build_scorer():
-    """Test build scoring"""
-    scorer = BuildScorer(None)  # Mock db_manager
+async def test_your_feature():
+    """Test description"""
+    calculator = YourCalculator(None)  # Mock db_manager if needed
 
-    character_data = {
-        "name": "TestChar",
-        "class": "Witch",
-        "level": 70
-    }
+    result = await calculator.calculate(input_data)
 
-    result = await scorer.analyze_build(character_data)
-
-    assert "overall_score" in result
-    assert 0.0 <= result["overall_score"] <= 1.0
-    assert result["tier"] in ["S", "A", "B", "C", "D"]
+    assert "expected_field" in result
+    assert result["value"] >= 0
 ```
 
 ## Configuration
 
-### Environment Variables
+### Environment Variables (.env)
 
 ```bash
-# .env file
-ANTHROPIC_API_KEY=your_key
+# Optional API keys
+ANTHROPIC_API_KEY=sk-ant-...  # For AI features
+
+# Debug settings
 DEBUG=true
 LOG_LEVEL=DEBUG
 ```
 
-### YAML Configuration
+### YAML Configuration (config.yaml)
 
 ```yaml
-# config.yaml
 server:
   port: 8080
-  workers: 4
 
 cache:
   enabled: true
   ttl: 3600
+
+api:
+  poe_ninja_rate_limit: 20
+  poe_api_rate_limit: 10
 ```
 
 ### Accessing Config
@@ -246,7 +241,7 @@ debug_mode = settings.DEBUG
 ### Migrations
 
 ```bash
-# Create a migration
+# Create migration
 alembic revision --autogenerate -m "Description"
 
 # Apply migrations
@@ -254,9 +249,6 @@ alembic upgrade head
 
 # Rollback
 alembic downgrade -1
-
-# View history
-alembic history
 ```
 
 ### Direct Database Access
@@ -264,12 +256,11 @@ alembic history
 ```python
 from src.database.manager import DatabaseManager
 
-async def query_items():
+async def query_data():
     db = DatabaseManager()
     await db.initialize()
 
-    items = await db.search_items("Unique Sword")
-    print(items)
+    items = await db.search_items("sword")
 
     await db.close()
 ```
@@ -278,7 +269,7 @@ async def query_items():
 
 ### Enable Debug Logging
 
-```python
+```bash
 # In .env
 DEBUG=true
 LOG_LEVEL=DEBUG
@@ -287,14 +278,14 @@ LOG_LEVEL=DEBUG
 ### View Logs
 
 ```bash
-# Tail logs
+# Unix/Mac
 tail -f logs/poe2_optimizer.log
 
-# Windows
+# Windows PowerShell
 Get-Content logs/poe2_optimizer.log -Wait
 ```
 
-### Debug in VS Code
+### VS Code Debug Config
 
 ```json
 // .vscode/launch.json
@@ -305,46 +296,11 @@ Get-Content logs/poe2_optimizer.log -Wait
             "name": "Python: MCP Server",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/src/mcp_server.py",
+            "program": "${workspaceFolder}/launch.py",
             "console": "integratedTerminal"
         }
     ]
 }
-```
-
-## Performance Optimization
-
-### Profiling
-
-```python
-import cProfile
-import pstats
-
-profiler = cProfile.Profile()
-profiler.enable()
-
-# Your code here
-
-profiler.disable()
-stats = pstats.Stats(profiler)
-stats.sort_stats('cumulative')
-stats.print_stats(10)
-```
-
-### Caching Strategy
-
-```python
-# Use cache manager
-from src.api.cache_manager import CacheManager
-
-cache = CacheManager()
-await cache.initialize()
-
-# Set cache
-await cache.set("key", data, ttl=3600)
-
-# Get from cache
-cached = await cache.get("key")
 ```
 
 ## Code Style
@@ -367,99 +323,65 @@ mypy src/
 
 ### Style Guidelines
 
-- Use type hints
-- Write docstrings
-- Keep functions focused
-- Use async/await
-- Handle errors gracefully
+- Use type hints on all functions
+- Write docstrings for classes and public methods
+- All I/O operations must be async
+- Handle errors gracefully in MCP handlers
+- Use `datetime.utcnow()` not `datetime.now()`
 
-## Common Tasks
+## Building Packages
 
-### Add a New Optimizer
+### PyPI Package
 
-1. Create file in `src/optimizer/`
-2. Implement optimization logic
-3. Register in `src/mcp_server.py`
-4. Add tests
-5. Update documentation
-
-### Add Data Seeding
-
-```python
-# scripts/seed_new_data.py
-
-import asyncio
-from src.database.manager import DatabaseManager
-from src.database.models import NewModel
-
-async def seed_data():
-    db = DatabaseManager()
-    await db.initialize()
-
-    # Add data
-    async with db.async_session() as session:
-        item = NewModel(name="Example", data={})
-        session.add(item)
-        await session.commit()
-
-    await db.close()
-
-if __name__ == "__main__":
-    asyncio.run(seed_data())
-```
-
-## Troubleshooting
-
-### Common Issues
-
-**Import Errors**
 ```bash
-# Add src to Python path
-export PYTHONPATH="${PYTHONPATH}:${PWD}/src"
+# Build
+python -m build
+
+# Upload (requires PyPI token)
+python -m twine upload dist/*
 ```
 
-**Database Locked**
+### MCP Bundle
+
 ```bash
-# Close all connections
-rm data/poe2_optimizer.db-journal
+# Bundle is pre-built in releases
+# Or create manually:
+python -c "
+import zipfile
+import os
+with zipfile.ZipFile('poe2-mcp.mcpb', 'w') as z:
+    z.write('mcpb_bundle/manifest.json', 'manifest.json')
+    for root, dirs, files in os.walk('mcpb_bundle/server'):
+        for f in files:
+            src = os.path.join(root, f)
+            dst = src.replace('mcpb_bundle/', '')
+            z.write(src, dst)
+"
 ```
 
-**Rate Limit Errors**
-```bash
-# Increase limits in config.yaml
-api:
-  poe_api_rate_limit: 20  # Increase from 10
-```
+## Contributing
 
-## Contributing Guidelines
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for contribution guidelines.
+
+### Quick Checklist
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Add tests
+3. Make changes following code style
+4. Add/update tests
 5. Update documentation
-6. Submit a pull request
+6. Run `pytest` - all tests must pass
+7. Submit a pull request
 
 ## Resources
 
+- [MCP Protocol Documentation](https://modelcontextprotocol.io/)
 - [Python AsyncIO](https://docs.python.org/3/library/asyncio.html)
 - [SQLAlchemy](https://docs.sqlalchemy.org/)
-- [FastAPI](https://fastapi.tiangolo.com/)
-- [MCP Protocol](https://modelcontextprotocol.io/)
-- [PoE2 API Docs](https://www.pathofexile.com/developer/docs)
+- [PyPI Package](https://pypi.org/project/poe2-mcp/)
 
 ## Getting Help
 
-- Check the [README.md](README.md) for usage instructions
+- Check the [README](../README.md) for usage
 - Review [ARCHITECTURE.md](ARCHITECTURE.md) for system design
-- See [QUICKSTART.md](QUICKSTART.md) for quick setup
-
-## Next Steps
-
-1. Set up your development environment
-2. Run the test suite
-3. Make a small change
-4. Test your change
-5. Contribute!
-
-Happy coding!
+- Open an [issue](https://github.com/HivemindOverlord/poe2-mcp/issues) for bugs/questions

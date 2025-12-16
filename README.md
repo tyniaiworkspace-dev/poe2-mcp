@@ -1,5 +1,9 @@
 # Path of Exile 2 Build Optimizer MCP
 
+[![PyPI version](https://badge.fury.io/py/poe2-mcp.svg)](https://pypi.org/project/poe2-mcp/)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 > **Community Project Disclaimer**
 >
 > This is an independent, fan-made community project built out of love for Path of Exile 2. It is **not affiliated with, endorsed by, or officially connected to Grinding Gear Games** in any way. Path of Exile is a trademark of Grinding Gear Games. All game data and assets remain the property of their respective owners.
@@ -28,10 +32,16 @@ This is an **MCP server** - a backend service that gives AI assistants (like Cla
 
 ### 1. Install
 
+**Option A: PyPI (Recommended)**
+```bash
+pip install poe2-mcp
+```
+
+**Option B: From Source**
 ```bash
 git clone https://github.com/HivemindOverlord/poe2-mcp.git
 cd poe2-mcp
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ### 2. Connect to Your AI Assistant
@@ -78,39 +88,17 @@ Add this server (replace the path with your actual installation path):
 
 Restart Claude Desktop. The server will appear in your MCP tools.
 
-### Option B: Create a .mcpb Bundle (For Distribution)
+### Option B: Download .mcpb Bundle (One-Click Install)
 
-MCP Bundles (.mcpb) allow one-click installation. This is **experimental for Python projects** because dependencies must be bundled.
+Pre-built MCP bundles are available for one-click installation in Claude Desktop:
 
-```bash
-# Install the bundle CLI
-npm install -g @anthropic-ai/mcpb
+1. Download `poe2-mcp-1.0.0.mcpb` from the [GitHub Releases](https://github.com/HivemindOverlord/poe2-mcp/releases/latest)
+2. In Claude Desktop: Settings > Extensions > Install Extension
+3. Select the downloaded `.mcpb` file
 
-# In the poe2-mcp directory
-mcpb init    # Creates manifest.json (set server.type = "python")
-mcpb pack    # Creates poe2-optimizer.mcpb
-```
+**Note:** The bundle is ~109MB as it includes all game data files. Python 3.9+ must be installed on your system.
 
-**Important for Python bundles:**
-- You must bundle all dependencies in `server/lib/` or include a `venv/`
-- Set `PYTHONPATH` in manifest's `mcp_config.env`
-- Bundle size will be large (~100MB+ with dependencies)
-
-**Bundle structure:**
-```
-poe2-optimizer.mcpb (ZIP)
-├── manifest.json       # Bundle metadata (server.type = "python")
-├── server/
-│   ├── launch.py       # Entry point
-│   ├── src/            # Source code
-│   ├── data/           # Game database
-│   └── lib/            # Bundled Python packages
-└── icon.png (optional)
-```
-
-See [mcpb documentation](https://github.com/modelcontextprotocol/mcpb) for manifest.json format.
-
-> **Recommendation:** For development, use manual configuration (Option A). Only create .mcpb bundles for distributing to end users who don't have Python installed.
+> **Recommendation:** For development or if you want automatic updates, use Option A (manual configuration) with `pip install poe2-mcp`.
 
 ---
 
@@ -341,9 +329,11 @@ pytest tests/ -v
 
 ### Running the Server Directly
 ```bash
+# If installed via pip
+poe2-mcp
+
+# From source
 python launch.py
-# or
-python src/mcp_server.py
 ```
 
 ### Key Files
