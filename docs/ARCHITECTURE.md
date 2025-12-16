@@ -1,8 +1,16 @@
 # PoE2 Build Optimizer - System Architecture
 
+> **Community Project**: This is an independent, fan-made project. Not affiliated with or endorsed by Grinding Gear Games.
+
 ## Overview
 
-This document describes the complete architecture of the Path of Exile 2 Build Optimizer MCP Server.
+This document describes the architecture of the Path of Exile 2 Build Optimizer MCP Server (v1.0.0).
+
+## Design Philosophy
+
+**MCP = Data Access Layer, Claude = Intelligence Layer**
+
+The server provides 32 focused tools that give AI assistants access to data they cannot obtain natively. The AI handles all analysis, optimization, and calculation using formulas provided by the `get_formula` tool.
 
 ## System Components
 
@@ -11,351 +19,245 @@ This document describes the complete architecture of the Path of Exile 2 Build O
 **Purpose**: Main server implementing the Model Context Protocol
 
 **Key Features**:
-- 10 MCP tools for build analysis and optimization
-- Natural language query interface
-- Character data fetching from PoE API
+- 32 MCP tools for build analysis, validation, and data access
+- Character data fetching from multiple sources
 - Build comparison and recommendations
 - Path of Building import/export
 
-**Tools Provided**:
-1. `analyze_character` - Comprehensive character analysis
-2. `natural_language_query` - AI-powered Q&A
-3. `optimize_gear` - Gear upgrade recommendations
-4. `optimize_passive_tree` - Passive tree optimization
-5. `optimize_skills` - Skill setup optimization
-6. `compare_builds` - Build comparison
-7. `import_pob` - Import Path of Building codes
-8. `export_pob` - Export to PoB format
-9. `search_items` - Search game database
-10. `calculate_dps` - Detailed DPS calculations
+**Tool Categories (32 total)**:
+
+| Category | Tools | Purpose |
+|----------|-------|---------|
+| Character Analysis | 4 | Fetch and analyze character data |
+| Validation | 2 | Validate gem combos and build constraints |
+| Gem Inspection | 4 | Query spell and support gem data |
+| Passive Tree | 4 | Query passive nodes, keystones, notables |
+| Base Items | 2 | Query base item types |
+| Item Mods | 6 | Query and validate item modifiers |
+| Path of Building | 3 | Import/export PoB codes |
+| Trade | 3 | Search items and trade site |
+| Knowledge | 2 | Game mechanics and formulas |
+| Utility | 2 | Health check and cache management |
 
 ### 2. API Integration Layer (`src/api/`)
 
-**Components**:
+**character_fetcher.py** - Multi-Source Character Fetching
+- 4-tier fallback: poe.ninja API -> SSE API -> Official API -> HTML scrape
+- Each tier has independent error handling
+- Cache bypasses all tiers on hit
 
-**poe_api.py** - Official PoE API Client
-- OAuth 2.0 support (ready for implementation)
-- Character data retrieval
-- Account information fetching
-- Passive tree and item data
+**poe_ninja_api.py** - poe.ninja Integration
+- Ladder data retrieval
+- Build statistics
+- Economy data (prices)
+
+**trade_api.py** - Official Trade Site
+- Search queries with Playwright browser automation
+- Session cookie management
+- Rate limiting
 
 **rate_limiter.py** - Adaptive Rate Limiting
 - Token bucket algorithm
-- Adaptive backoff on failures
-- Per-endpoint rate limiting
-- Statistics tracking
+- Exponential backoff on failures (max 32x)
+- Per-endpoint rate limits:
+  - PoE Official API: 10 req/min
+  - poe.ninja: 20 req/min
 
 **cache_manager.py** - Multi-Tier Caching
-- L1: In-memory cache (fastest, 1000 items)
-- L2: Redis cache (optional, shared)
-- L3: SQLite cache (persistent)
-- Automatic expiry management
+- L1: In-memory (1000 items, 5 min TTL)
+- L2: Redis (optional, shared across instances)
+- L3: SQLite (persistent)
 
-### 3. Database Layer (`src/database/`)
+### 3. Data Layer (`src/data/`)
 
-**models.py** - SQLAlchemy Models
+**mod_data_provider.py** - Item Modifier Access
+- 14,269 modifiers (prefixes, suffixes, implicits)
+- Tier lookup and validation
+- Stat text search
+
+**fresh_data_provider.py** - Game Data Access
+- Passive tree nodes (4,975+)
+- Ascendancy nodes (335+)
+- Skill and support gem data
+- Base item data
+
+### 4. Calculator Engine (`src/calculator/`)
+
+**ehp_calculator.py** - Effective HP
+- Per-damage-type EHP calculations
+- Armor, evasion, block factoring
+- Resistance mitigation
+
+**spirit_calculator.py** - Spirit System
+- Spirit cost calculations
+- Reservation tracking
+- Meta gem interactions
+
+**stun_calculator.py** - Stun Mechanics
+- Stun threshold calculations
+- Recovery mechanics
+- Mitigation factors
+
+**resource_calculator.py** - Resources
+- Mana/life/ES calculations
+- Reservation handling
+- Regeneration rates
+
+### 5. Analyzer Layer (`src/analyzer/`)
+
+**character_analyzer.py** - Build Analysis
+- Overall character evaluation
+- Defense layer analysis
+- Skill setup review
+
+**weakness_detector.py** - Vulnerability Detection
+- Identifies build weaknesses
+- Prioritized recommendations
+- Fix suggestions
+
+**archetype_classifier.py** - Build Classification
+- Identifies build archetypes
+- Meta comparison
+
+### 6. Optimizer Layer (`src/optimizer/`)
+
+**gear_optimizer.py** - Gear Recommendations
+- Budget-aware suggestions
+- Slot-by-slot analysis
+- Priority ranking
+
+**gem_synergy_calculator.py** - Support Gem Logic
+- Compatibility checking
+- Synergy calculations
+- Invalid combination detection
+
+### 7. Knowledge Layer (`src/knowledge/`)
+
+**poe2_mechanics.py** - Game Mechanics Database
+- Damage types and conversions
+- Defense layers (armor, evasion, block, ES)
+- Ailments (ignite, shock, freeze, chill, poison, bleed)
+- Resource systems (mana, ES, life, spirit)
+- Scaling formulas
+
+### 8. Database Layer (`src/database/`)
+
+**models.py** - SQLAlchemy ORM Models
 - `Item` - Base item types
 - `UniqueItem` - Unique items
 - `Modifier` - Item/passive modifiers
 - `PassiveNode` - Passive tree nodes
-- `PassiveConnection` - Tree node connections
 - `SkillGem` - Active skill gems
 - `SupportGem` - Support gems
-- `Ascendancy` - Ascendancy classes
-- `SavedBuild` - User-saved builds
-- `GameDataVersion` - Data versioning
 
 **manager.py** - Database Manager
-- Async database operations
-- Item search
-- Passive tree queries
+- Async operations with aiosqlite
+- Item/node search
 - Build persistence
-- Connection management
 
-### 4. Calculator Engine (`src/calculator/`)
+### 9. Parsers (`src/parsers/`)
 
-**build_scorer.py** - Build Quality Scoring
-- 0.0-1.0 overall quality score
-- Tier ranking (S/A/B/C/D)
-- Strength/weakness identification
-- Gear, passive, and skill scoring
-- Build comparison
+**passive_tree_resolver.py** - Passive Tree
+- Node lookup by ID/name
+- Stat text resolution
+- Tree navigation
 
-### 5. Optimizer Modules (`src/optimizer/`)
-
-**gear_optimizer.py** - Gear Recommendations
-- Slot-by-slot analysis
-- Budget-aware suggestions
-- Priority ranking
-- Goal-specific optimization
-
-**passive_optimizer.py** - Passive Tree
-- Point allocation recommendations
-- Respec suggestions
-- Efficient pathing
-- Keystone analysis
-
-**skill_optimizer.py** - Skill Setup
-- Gem combination suggestions
-- Link priority
-- Support gem recommendations
-
-### 6. AI Components (`src/ai/`)
-
-**query_handler.py** - Natural Language Processing
-- Claude AI integration
-- Context-aware responses
-- Build-specific answers
-
-**recommendation_engine.py** - AI Recommendations
-- Comprehensive build analysis
-- Actionable suggestions
-- Personalized advice
-
-### 7. Path of Building Integration (`src/pob/`)
-
-**importer.py** - PoB Import
-- Base64 decoding
-- XML parsing
-- Build data extraction
-
-**exporter.py** - PoB Export
-- Build XML generation
-- Compression and encoding
-- PoB-compatible format
+**specifications/** - Datc64 Format Specs
+- Binary file format definitions
+- Field mappings for game data extraction
 
 ## Data Flow
 
 ```
-User Query (via Claude Desktop)
-    ↓
+User Query (via AI Assistant)
+    |
+    v
 MCP Server receives tool call
-    ↓
+    |
+    v
 Rate Limiter checks quota
-    ↓
+    |
+    v
 Cache Manager checks for cached data
-    ↓ (if cache miss)
-PoE API Client fetches data
-    ↓
-Database Manager stores/retrieves game data
-    ↓
-Calculator/Optimizer processes data
-    ↓
-AI Components generate insights (if enabled)
-    ↓
+    |
+    v (if cache miss)
+API Client / Data Provider fetches data
+    |
+    v
+Calculator/Analyzer processes data
+    |
+    v
 Response formatted and returned
-    ↓
+    |
+    v
 Cache Manager stores result
-    ↓
+    |
+    v
 User receives formatted analysis
 ```
 
-## Caching Strategy
+## Token Optimization
 
-### L1: Memory Cache
-- **Duration**: 5 minutes
-- **Size**: 1000 items max
-- **Use**: Frequently accessed data
-- **Speed**: Instant
-
-### L2: Redis Cache (Optional)
-- **Duration**: 1 hour
-- **Size**: Unlimited
-- **Use**: Shared across instances
-- **Speed**: < 1ms
-
-### L3: SQLite Cache
-- **Duration**: Persistent
-- **Size**: Unlimited (auto-cleanup)
-- **Use**: Long-term storage
-- **Speed**: < 10ms
-
-## Rate Limiting
-
-### Strategy
-- Token bucket algorithm
-- Adaptive backoff (2^n)
-- Per-endpoint limits
-- Failure tracking
-
-### Default Limits
-- PoE Official API: 10 req/min
-- poe2db.tw: 30 req/min
-- poe.ninja: 20 req/min
-
-### Adaptive Behavior
-- Success: Reset backoff
-- Failure: 2x backoff (max 32x)
-- Consecutive failures: Exponential increase
-
-## Database Schema
-
-### Core Tables
-- **items**: ~10,000 items
-- **unique_items**: ~500 uniques
-- **modifiers**: ~5,000 modifiers
-- **passive_nodes**: ~1,500 nodes
-- **skill_gems**: ~200 skills
-- **support_gems**: ~150 supports
-
-### User Tables
-- **saved_builds**: User builds
-- **optimization_history**: Past results
+All list/enumeration tools support:
+- **Pagination**: `limit` (default 20), `offset` parameters
+- **Detail Levels**: `summary`, `standard`, `full`
+- **Compact Format**: `compact=true` for abbreviated JSON keys
 
 ## Performance Targets
 
-- **Character Analysis**: < 500ms
-- **Gear Optimization**: < 1s
-- **Passive Optimization**: < 2s
-- **Full Build Analysis**: < 3s
-- **Natural Language Query**: < 5s (AI dependent)
-
-## Scalability
-
-### Vertical Scaling
-- Increase worker count
-- Larger cache size
-- Better hardware
-
-### Horizontal Scaling
-- Redis cache sharing
-- Load balancer
-- Multiple server instances
+| Operation | Target |
+|-----------|--------|
+| Character Analysis | < 500ms |
+| Gem/Mod Lookup | < 100ms |
+| Passive Node Query | < 50ms |
+| Full Build Analysis | < 3s |
 
 ## Security
 
-### API Security
-- Rate limiting per user
-- Request validation
-- SQL injection prevention
-- XSS protection
-
-### Data Privacy
-- No credential storage
-- Local-first approach
-- Optional cloud sync (encrypted)
-- User data isolation
-
-## Monitoring
-
-### Metrics Tracked
-- API call counts
-- Cache hit rates
-- Response times
-- Error rates
-- Rate limit usage
-
-### Logging
-- Request/response logging
-- Error tracking
-- Performance profiling
-- User activity (anonymous)
-
-## Extensibility
-
-### Adding New Tools
-1. Define tool in `_register_tools()`
-2. Implement handler method
-3. Add supporting modules
-4. Update documentation
-
-### Adding Data Sources
-1. Create new API client
-2. Add rate limiter
-3. Implement caching
-4. Map to database models
-
-### Adding Optimizers
-1. Create optimizer class
-2. Implement optimization logic
-3. Register in MCP server
-4. Add tests
+- No credential storage in code
+- Session cookies stored locally only
+- Rate limiting prevents API abuse
+- SQL injection prevention via ORM
+- Input validation on all tool arguments
 
 ## Technology Stack
 
-### Core
-- Python 3.9+
-- FastAPI (future web API)
-- SQLAlchemy (ORM)
-- MCP Protocol
+| Component | Technology |
+|-----------|------------|
+| Language | Python 3.9+ |
+| Protocol | Model Context Protocol (MCP) |
+| Database | SQLite + SQLAlchemy (async) |
+| HTTP | httpx, aiohttp |
+| Caching | Memory + Redis (optional) + SQLite |
+| Browser Automation | Playwright (trade only) |
 
-### APIs
-- httpx (async HTTP)
-- aiohttp (async requests)
+## Installation Methods
 
-### AI
-- Anthropic Claude API
-- OpenAI (alternative)
+| Method | Command | Use Case |
+|--------|---------|----------|
+| PyPI | `pip install poe2-mcp` | Recommended |
+| Source | `pip install -e .` | Development |
+| Bundle | `.mcpb` from GitHub Releases | One-click install |
 
-### Caching
-- aioredis (Redis)
-- aiosqlite (SQLite)
+## Adding New Features
 
-### Data Processing
-- pandas (optional)
-- numpy (optional)
+### Adding a New MCP Tool
 
-## Development Workflow
+1. Define tool in `_register_tools()` method
+2. Add handler dispatch in `handle_call_tool()`
+3. Implement `_handle_<toolname>()` handler
+4. Initialize any required components in `__init__()`
+5. Add tests in `tests/`
 
-### Setup
-```bash
-python setup.py
-```
+### Adding New Data Providers
 
-### Run
-```bash
-python launch.py
-```
-
-### Test
-```bash
-pytest tests/
-```
-
-### Deploy
-```bash
-# Add to Claude Desktop config
-# Or run as standalone server
-```
-
-## Future Enhancements
-
-### Phase 1 (Current)
-- [x] MCP server foundation
-- [x] API integration
-- [x] Database models
-- [x] Basic caching
-- [x] Rate limiting
-
-### Phase 2
-- [ ] Complete calculator engine
-- [ ] Full optimizer implementations
-- [ ] Comprehensive game data seeding
-- [ ] Web interface
-
-### Phase 3
-- [ ] Trade integration
-- [ ] Build sharing
-- [ ] Meta analysis
-- [ ] Advanced AI features
-
-### Phase 4
-- [ ] Mobile app
-- [ ] Real-time notifications
-- [ ] Community features
-- [ ] Tournament support
-
-## Contributing
-
-This is a personal project, but well-structured for extensions:
-- Clear module separation
-- Comprehensive documentation
-- Type hints throughout
-- Async-first design
+1. Create class in `src/data/`
+2. Implement async data loading methods
+3. Initialize in MCP server `__init__()`
+4. Use from tool handlers
 
 ## References
 
-- [MCP Protocol](https://modelcontextprotocol.io/)
-- [PoE2 API Documentation](https://www.pathofexile.com/developer/docs)
-- [poe2db.tw](https://poe2db.tw) - Game data source
-- [Path of Building](https://github.com/PathOfBuildingCommunity/PathOfBuilding)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
+- [PyPI Package](https://pypi.org/project/poe2-mcp/)
+- [GitHub Repository](https://github.com/HivemindOverlord/poe2-mcp)
