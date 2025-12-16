@@ -3314,13 +3314,21 @@ Consider:
             )]
 
     async def _handle_list_all_supports(self, args: dict) -> List[types.TextContent]:
-        """List all support gems with filtering and sorting (uses FreshDataProvider SSoT)"""
+        """List all support gems with filtering, sorting, pagination, and output format options."""
         try:
+            from src.utils.response_formatter import (
+                PaginationMeta, filter_fields, format_list_response,
+                SUPPORT_GEM_FIELDS, compact_json
+            )
+
             filter_tags = args.get("filter_tags", [])
             min_spirit = args.get("min_spirit")
             max_spirit = args.get("max_spirit")
             sort_by = args.get("sort_by", "name")
-            limit = args.get("limit", 50)
+            limit = args.get("limit", 20)
+            offset = args.get("offset", 0)
+            detail = args.get("detail", "standard")
+            output_format = args.get("format", "markdown")
 
             # Use FreshDataProvider as Single Source of Truth
             fresh_provider = get_fresh_data_provider()
@@ -3336,7 +3344,7 @@ Consider:
 
                 # Apply filters
                 if filter_tags:
-                    support_tags = [t.lower() for t in support_data.get('tags', [])]
+                    support_tags = [t.lower() for t in (support_data.get('tags') or [])]
                     if not any(ft.lower() in support_tags for ft in filter_tags):
                         continue
 
@@ -3349,7 +3357,6 @@ Consider:
                 effects = support_data.get('effects', {})
                 effect_summary = ""
                 if effects:
-                    # Show first 2 most important effects
                     key_effects = []
                     for k, v in list(effects.items())[:2]:
                         if isinstance(v, bool):
@@ -3360,10 +3367,14 @@ Consider:
 
                 all_supports.append({
                     'name': support_data['display_name'],
-                    'tags': support_data.get('tags', []),
+                    'tags': support_data.get('tags') or [],
                     'tier': support_data.get('tier', '?'),
                     'spirit_cost': spirit_cost,
-                    'effect_summary': effect_summary
+                    'effect_summary': effect_summary,
+                    'effects': effects,
+                    'compatible_with': support_data.get('compatible_with', []),
+                    'requirements': support_data.get('requirements', {}),
+                    'acquisition': support_data.get('acquisition', '')
                 })
 
             # Sort
@@ -3371,47 +3382,69 @@ Consider:
                 all_supports.sort(key=lambda x: x['spirit_cost'])
             elif sort_by == "tier":
                 all_supports.sort(key=lambda x: (x['tier'] if isinstance(x['tier'], int) else 99, x['name']))
-            else:  # name
+            else:
                 all_supports.sort(key=lambda x: x['name'])
 
-            # Limit
-            all_supports = all_supports[:limit]
+            # Pagination
+            total = len(all_supports)
+            paginated = all_supports[offset:offset + limit]
+            meta = PaginationMeta(total=total, limit=limit, offset=offset, showing=len(paginated))
+
+            # Filter by detail level
+            filtered = [filter_fields(s, detail, SUPPORT_GEM_FIELDS) for s in paginated]
 
             # Format response
-            response = f"# Support Gems ({len(all_supports)} results)\n\n"
-            for sup in all_supports:
-                response += f"**{sup['name']}** (Tier {sup['tier']})\n"
-                response += f"  Spirit: {sup['spirit_cost']}, Tags: {', '.join(sup['tags'][:3])}\n"
-                if sup['effect_summary']:
-                    response += f"  Effects: {sup['effect_summary']}\n"
-                response += "\n"
+            if output_format == "compact":
+                response = compact_json({"results": filtered, "meta": meta.to_dict()})
+            else:
+                response = format_list_response(
+                    filtered, meta, "Support Gems",
+                    item_formatter=lambda s: self._format_support_item(s, detail)
+                )
 
             return [types.TextContent(type="text", text=response)]
 
         except Exception as e:
             logger.error(f"Error listing supports: {e}")
-            return [types.TextContent(
-                type="text",
-                text=f"Error: {str(e)}"
-            )]
+            return [types.TextContent(type="text", text=f"Error: {str(e)}")]
+
+    def _format_support_item(self, sup: dict, detail: str) -> str:
+        """Format a single support gem for markdown output."""
+        if detail == "summary":
+            return f"- {sup.get('name', 'Unknown')} (T{sup.get('tier', '?')})\n"
+
+        result = f"**{sup.get('name', 'Unknown')}** (Tier {sup.get('tier', '?')})\n"
+        if detail in ("standard", "full"):
+            result += f"  Spirit: {sup.get('spirit_cost', 0)}, Tags: {', '.join((sup.get('tags') or [])[:3])}\n"
+            if sup.get('effect_summary'):
+                result += f"  Effects: {sup['effect_summary']}\n"
+        if detail == "full" and sup.get('effects'):
+            result += f"  Full Effects: {sup['effects']}\n"
+        result += "\n"
+        return result
 
     async def _handle_list_all_spells(self, args: dict) -> List[types.TextContent]:
-        """List all spell/active skill gems with filtering and sorting (uses pob_complete_skills.json)"""
+        """List all spell/active skill gems with filtering, sorting, pagination, and output format options."""
         try:
+            from src.utils.response_formatter import (
+                PaginationMeta, filter_fields, format_list_response,
+                SPELL_GEM_FIELDS, compact_json
+            )
+
             filter_element = args.get("filter_element")
             filter_tags = args.get("filter_tags", [])
             min_damage = args.get("min_damage")
             sort_by = args.get("sort_by", "name")
-            limit = args.get("limit", 50)
+            limit = args.get("limit", 20)
+            offset = args.get("offset", 0)
+            detail = args.get("detail", "standard")
+            output_format = args.get("format", "markdown")
 
             # Load from pob_complete_skills.json (has complete data)
             pob_skills_file = Path(__file__).parent.parent / 'data' / 'pob_complete_skills.json'
 
             if not pob_skills_file.exists():
-                return [types.TextContent(
-                    type="text",
-                    text="Error: pob_complete_skills.json not found"
-                )]
+                return [types.TextContent(type="text", text="Error: pob_complete_skills.json not found")]
 
             with open(pob_skills_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -3424,40 +3457,29 @@ Consider:
                 if not isinstance(skill_data, dict):
                     continue
 
-                # Skip support gems and hidden skills
                 if skill_data.get('hidden'):
                     continue
 
                 name = skill_data.get('name', skill_id)
                 skill_types = skill_data.get('skillTypes', [])
 
-                # Apply tag filter if provided
                 if filter_tags:
                     if not any(tag.lower() in [st.lower() for st in skill_types] for tag in filter_tags):
                         continue
 
-                # Get level 20 stats (or highest available)
                 levels = skill_data.get('levels', {})
                 level_20_data = levels.get('20', levels.get('1', {}))
-
-                # Get cast time
                 cast_time = skill_data.get('castTime', 0)
-
-                # Get base multiplier at level 20
                 base_mult = level_20_data.get('baseMultiplier', 0)
-
-                # Get mana cost at level 20
                 cost = level_20_data.get('cost', {})
                 mana_cost = cost.get('Mana', 0)
 
-                # Detect element from skill types
                 element = 'Physical'
                 for st in skill_types:
                     if st in ['Fire', 'Cold', 'Lightning', 'Chaos']:
                         element = st
                         break
 
-                # Apply element filter if provided
                 if filter_element and element.lower() != filter_element.lower():
                     continue
 
@@ -3468,7 +3490,10 @@ Consider:
                     'tags': skill_types,
                     'base_multiplier': base_mult,
                     'cast_time': cast_time,
-                    'mana_cost': mana_cost
+                    'mana_cost': mana_cost,
+                    'description': skill_data.get('description', ''),
+                    'skill_types': skill_types,
+                    'levels': levels
                 })
 
             # Sort
@@ -3478,31 +3503,47 @@ Consider:
                 all_spells.sort(key=lambda x: x['cast_time'] if x['cast_time'] > 0 else 999)
             elif sort_by == "mana_cost":
                 all_spells.sort(key=lambda x: x['mana_cost'], reverse=True)
-            else:  # name
+            else:
                 all_spells.sort(key=lambda x: x['name'])
 
-            # Limit
-            all_spells = all_spells[:limit]
+            # Pagination
+            total = len(all_spells)
+            paginated = all_spells[offset:offset + limit]
+            meta = PaginationMeta(total=total, limit=limit, offset=offset, showing=len(paginated))
+
+            # Filter by detail level
+            filtered = [filter_fields(s, detail, SPELL_GEM_FIELDS) for s in paginated]
 
             # Format response
-            response = f"# Spell Gems ({len(all_spells)} results)\n\n"
-            for spell in all_spells:
-                mult_str = f"{spell['base_multiplier']:.1f}x" if spell['base_multiplier'] > 0 else "N/A"
-                cast_str = f"{spell['cast_time']:.2f}s" if spell['cast_time'] > 0 else "N/A"
-                mana_str = f"{spell['mana_cost']}" if spell['mana_cost'] > 0 else "N/A"
-
-                response += f"**{spell['name']}** ({spell['element']})\n"
-                response += f"  Base Mult: {mult_str}, Cast: {cast_str}, Mana: {mana_str}\n"
-                response += f"  Tags: {', '.join(spell['tags'][:4])}\n\n"
+            if output_format == "compact":
+                response = compact_json({"results": filtered, "meta": meta.to_dict()})
+            else:
+                response = format_list_response(
+                    filtered, meta, "Spell Gems",
+                    item_formatter=lambda s: self._format_spell_item(s, detail)
+                )
 
             return [types.TextContent(type="text", text=response)]
 
         except Exception as e:
             logger.error(f"Error listing spells: {e}")
-            return [types.TextContent(
-                type="text",
-                text=f"Error: {str(e)}"
-            )]
+            return [types.TextContent(type="text", text=f"Error: {str(e)}")]
+
+    def _format_spell_item(self, spell: dict, detail: str) -> str:
+        """Format a single spell gem for markdown output."""
+        if detail == "summary":
+            return f"- {spell.get('name', 'Unknown')} ({spell.get('element', 'Physical')})\n"
+
+        mult_str = f"{spell.get('base_multiplier', 0):.1f}x" if spell.get('base_multiplier', 0) > 0 else "N/A"
+        cast_str = f"{spell.get('cast_time', 0):.2f}s" if spell.get('cast_time', 0) > 0 else "N/A"
+        mana_str = f"{spell.get('mana_cost', 0)}" if spell.get('mana_cost', 0) > 0 else "N/A"
+
+        result = f"**{spell.get('name', 'Unknown')}** ({spell.get('element', 'Physical')})\n"
+        result += f"  Base Mult: {mult_str}, Cast: {cast_str}, Mana: {mana_str}\n"
+        if spell.get('tags'):
+            result += f"  Tags: {', '.join(spell['tags'][:4])}\n"
+        result += "\n"
+        return result
 
     # ============================================================================
     # TIER 2 DEBUGGING TOOL HANDLERS
@@ -3957,8 +3998,13 @@ Could not extract account and character from URL.
     # ============================================================================
 
     async def _handle_list_all_keystones(self, args: dict) -> List[types.TextContent]:
-        """List all keystone passive nodes with full stats"""
+        """List all keystone passive nodes with pagination, detail levels, and format options."""
         try:
+            from src.utils.response_formatter import (
+                PaginationMeta, filter_fields, format_list_response,
+                KEYSTONE_FIELDS, compact_json
+            )
+
             if not self.passive_tree_resolver:
                 return [types.TextContent(
                     type="text",
@@ -3967,8 +4013,12 @@ Could not extract account and character from URL.
 
             filter_stat = args.get("filter_stat", "").lower()
             sort_by = args.get("sort_by", "name")
+            limit = args.get("limit", 20)
+            offset = args.get("offset", 0)
+            detail = args.get("detail", "standard")
+            output_format = args.get("format", "markdown")
 
-            # Get keystones from PassiveTreeResolver (has full stats)
+            # Get keystones from PassiveTreeResolver
             keystones = self.passive_tree_resolver.get_all_keystones()
 
             # Filter by stat text if provided
@@ -3981,29 +4031,57 @@ Could not extract account and character from URL.
             # Sort
             if sort_by == "stat_count":
                 keystones.sort(key=lambda k: -len(k.stats) if k else 0)
-            else:  # name
+            else:
                 keystones.sort(key=lambda k: k.name if k else "")
 
-            # Format response
-            response = f"# All Keystones ({len(keystones)} total)\n\n"
-            response += "Keystones are powerful build-defining passives with major tradeoffs.\n\n"
-
-            for keystone in keystones:
-                if not keystone:
+            # Convert to dicts for processing
+            keystone_dicts = []
+            for k in keystones:
+                if not k:
                     continue
-                response += f"## {keystone.name}\n"
-                for stat in keystone.stats:
-                    response += f"- {stat}\n"
-                response += "\n"
+                keystone_dicts.append({
+                    'name': k.name,
+                    'node_id': getattr(k, 'node_id', None),
+                    'stats': list(k.stats) if k.stats else [],
+                    'reminder_text': getattr(k, 'reminder_text', ''),
+                    'ascendancy_name': getattr(k, 'ascendancy_name', ''),
+                    'flavour_text': getattr(k, 'flavour_text', '')
+                })
 
-            if not keystones:
-                response += "*No keystones found matching filter.*\n"
+            # Pagination
+            total = len(keystone_dicts)
+            paginated = keystone_dicts[offset:offset + limit]
+            meta = PaginationMeta(total=total, limit=limit, offset=offset, showing=len(paginated))
+
+            # Filter by detail level
+            filtered = [filter_fields(k, detail, KEYSTONE_FIELDS) for k in paginated]
+
+            # Format response
+            if output_format == "compact":
+                response = compact_json({"results": filtered, "meta": meta.to_dict()})
+            else:
+                response = format_list_response(
+                    filtered, meta, "Keystones",
+                    item_formatter=lambda k: self._format_keystone_item(k, detail)
+                )
 
             return [types.TextContent(type="text", text=response)]
 
         except Exception as e:
             logger.error(f"Error listing keystones: {e}")
             return [types.TextContent(type="text", text=f"Error: {str(e)}")]
+
+    def _format_keystone_item(self, keystone: dict, detail: str) -> str:
+        """Format a single keystone for markdown output."""
+        if detail == "summary":
+            return f"- {keystone.get('name', 'Unknown')}\n"
+
+        result = f"## {keystone.get('name', 'Unknown')}\n"
+        if keystone.get('stats'):
+            for stat in keystone['stats']:
+                result += f"- {stat}\n"
+        result += "\n"
+        return result
 
     async def _handle_inspect_keystone(self, args: dict) -> List[types.TextContent]:
         """Get complete details for a specific keystone"""
@@ -4393,11 +4471,19 @@ Could not extract account and character from URL.
             return [types.TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def _handle_list_all_mods(self, args: dict) -> List[types.TextContent]:
-        """List all mods with filtering"""
+        """List all mods with filtering, pagination, detail levels, and format options."""
         try:
+            from src.utils.response_formatter import (
+                PaginationMeta, filter_fields, format_list_response,
+                MOD_FIELDS, compact_json
+            )
+
             generation_type = args.get("generation_type")
             filter_stat = args.get("filter_stat", "").strip().lower()
-            limit = args.get("limit", 50)
+            limit = args.get("limit", 20)
+            offset = args.get("offset", 0)
+            detail = args.get("detail", "standard")
+            output_format = args.get("format", "markdown")
 
             # Load mods from JSON file
             mods_file = DATA_DIR / "poe2_mods_extracted.json"
@@ -4413,49 +4499,50 @@ Could not extract account and character from URL.
             # Filter mods
             filtered_mods = []
             for mod in mods_data.get('mods', []):
-                # Apply generation type filter
                 if generation_type and mod.get('generation_type_name') != generation_type:
                     continue
-
-                # Apply stat filter (search in mod_id)
                 if filter_stat and filter_stat not in mod.get('mod_id', '').lower():
                     continue
-
                 filtered_mods.append(mod)
 
             # Sort by level requirement
             filtered_mods.sort(key=lambda m: m.get('level_requirement', 0))
 
-            # Apply limit
-            filtered_mods = filtered_mods[:limit]
+            # Pagination
+            total = len(filtered_mods)
+            paginated = filtered_mods[offset:offset + limit]
+            meta = PaginationMeta(total=total, limit=limit, offset=offset, showing=len(paginated))
+
+            # Filter by detail level
+            filtered = [filter_fields(m, detail, MOD_FIELDS) for m in paginated]
 
             # Format response
-            metadata = mods_data.get('metadata', {})
-            response = f"# Mods Database\n\n"
-            response += f"**Total in database:** {metadata.get('total_mods', 0)}\n"
-            response += f"**Filtered results:** {len(filtered_mods)}\n"
-
-            if generation_type:
-                response += f"**Filter:** {generation_type}\n"
-            if filter_stat:
-                response += f"**Stat keyword:** '{filter_stat}'\n"
-
-            response += f"\n## Mods (showing {len(filtered_mods)})\n\n"
-
-            for mod in filtered_mods:
-                response += f"### {mod['mod_id']}\n"
-                response += f"- Type: {mod.get('generation_type_name', 'Unknown')}\n"
-                response += f"- Level: {mod.get('level_requirement', 0)}\n"
-                response += f"- Value: {mod.get('min_value', 0)} - {mod.get('max_value', 0)}\n\n"
-
-            if len(filtered_mods) >= limit:
-                response += f"\n*Showing first {limit} results. Use limit parameter to see more.*\n"
+            if output_format == "compact":
+                response = compact_json({"results": filtered, "meta": meta.to_dict()})
+            else:
+                response = format_list_response(
+                    filtered, meta, "Mods",
+                    item_formatter=lambda m: self._format_mod_item(m, detail)
+                )
 
             return [types.TextContent(type="text", text=response)]
 
         except Exception as e:
             logger.error(f"Error listing mods: {e}")
             return [types.TextContent(type="text", text=f"Error: {str(e)}")]
+
+    def _format_mod_item(self, mod: dict, detail: str) -> str:
+        """Format a single mod for markdown output."""
+        if detail == "summary":
+            return f"- {mod.get('mod_id', 'Unknown')} ({mod.get('generation_type_name', '?')})\n"
+
+        result = f"### {mod.get('mod_id', 'Unknown')}\n"
+        result += f"- Type: {mod.get('generation_type_name', 'Unknown')}\n"
+        if detail in ("standard", "full"):
+            result += f"- Level: {mod.get('level_requirement', 0)}\n"
+            result += f"- Value: {mod.get('min_value', 0)} - {mod.get('max_value', 0)}\n"
+        result += "\n"
+        return result
 
     async def _handle_search_mods_by_stat(self, args: dict) -> List[types.TextContent]:
         """Search for mods by stat keyword"""
