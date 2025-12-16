@@ -5,6 +5,20 @@ Format based on Path of Building changelog style, adapted for MCP tooling.
 
 ---
 
+## Version 0.2.1 (2025-12-16)
+
+--- Token Optimization ---
+* Add pagination support to list tools with `limit` (default 20) and `offset` parameters
+* Add detail level filtering (`summary`, `standard`, `full`) to control response verbosity
+* Add compact output format option with abbreviated JSON keys for programmatic consumption
+* Updated tools: `list_all_supports`, `list_all_spells`, `list_all_keystones`, `list_all_mods`
+
+--- Infrastructure ---
+* Add `src/utils/response_formatter.py` utility module for pagination, filtering, and formatting
+* Add comprehensive test suite for token optimization features (`tests/test_token_optimization.py`)
+
+---
+
 ## Version 0.2.0 (2025-12-16)
 
 --- MCP Tools ---
