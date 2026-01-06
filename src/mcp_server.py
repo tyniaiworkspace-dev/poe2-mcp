@@ -240,6 +240,10 @@ class PoE2BuildOptimizerMCP:
 
             # Initialize new enhancement features
             self.gem_synergy_calculator = GemSynergyCalculator()
+            # Load support gems from SQLite database (authoritative source with display names)
+            support_gem_count = await self.gem_synergy_calculator.load_support_gems_from_database(self.db_manager)
+            if support_gem_count > 0:
+                logger.info(f"GemSynergyCalculator: Loaded {support_gem_count} support gems from database")
             self.mechanics_kb = PoE2MechanicsKnowledgeBase(db_manager=self.db_manager)  # Pass db_manager for .datc64 access
             self.gear_comparator = GearComparator()
             self.damage_scaling_analyzer = DamageScalingAnalyzer()
