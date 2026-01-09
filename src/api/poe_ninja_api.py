@@ -28,6 +28,16 @@ class PoeNinjaAPI:
 
     # League name to URL slug mapping
     LEAGUE_MAPPINGS = {
+        # Vaal League variants (Fate of the Vaal - current league)
+        "Fate of the Vaal": "vaal",
+        "FotV": "vaal",
+        "Vaal": "vaal",
+        "Vaal Hardcore": "vaalhc",
+        "Vaal HC": "vaalhc",
+        "Vaal SSF": "vaalssf",
+        "Vaal HC SSF": "vaalhcssf",
+        "Vaal Hardcore SSF": "vaalhcssf",
+
         # Abyss League variants
         "Rise of the Abyssal": "abyss",
         "Abyss": "abyss",
@@ -36,6 +46,14 @@ class PoeNinjaAPI:
         "Abyss SSF": "abyssssf",
         "Abyss HC SSF": "abysshcssf",
         "Abyss Hardcore SSF": "abysshcssf",
+
+        # Dawn League variants
+        "Dawn of the Hunt": "dawn",
+        "Dawn": "dawn",
+        "Dawn Hardcore": "dawnhc",
+        "Dawn HC": "dawnhc",
+        "Dawn SSF": "dawnssf",
+        "Dawn HC SSF": "dawnhcssf",
 
         # Standard leagues
         "Standard": "standard",
