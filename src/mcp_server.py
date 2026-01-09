@@ -4982,6 +4982,11 @@ Could not extract account and character from URL.
                     if node.stats:
                         response += f"  - {node.stats[0]}\n"
 
+        # Add skill gems section
+        skills_section = self._format_skills_section(character_data)
+        if skills_section:
+            response += skills_section
+
         if recommendations:
             response += f"\n## AI Recommendations\n{recommendations}"
 
@@ -5068,6 +5073,121 @@ Could not extract account and character from URL.
     def _format_list(self, items: List[str]) -> str:
         """Format a list of strings as markdown"""
         return "\n".join(f"- {item}" for item in items) if items else "None identified"
+
+    def _format_skills_section(self, character_data: dict) -> str:
+        """Format skill gems and their support links from character data"""
+        skills = character_data.get('skills', [])
+        skill_dps = character_data.get('skill_dps', [])
+
+        if not skills and not skill_dps:
+            return ""
+
+        response = "\n## Skill Gems\n"
+
+        # Create a DPS lookup by skill name for quick reference
+        dps_lookup = {}
+        for dps_entry in skill_dps:
+            name = dps_entry.get('skill_name', '')
+            if name:
+                dps_lookup[name.lower()] = dps_entry
+
+        # Process each skill group
+        for i, skill in enumerate(skills):
+            # Handle different possible structures from poe.ninja
+            # Structure 1: skill has 'name' directly
+            # Structure 2: skill has 'gems' array with main + supports
+            # Structure 3: skill has 'dps' array with skill info
+
+            skill_name = skill.get('name', '')
+            gems = skill.get('gems', [])
+            slot = skill.get('slot', skill.get('socketGroup', ''))
+
+            # If we have a gems array, parse it
+            if gems:
+                main_gems = []
+                support_gems = []
+
+                for gem in gems:
+                    gem_name = gem.get('name', gem.get('skillGem', ''))
+                    gem_level = gem.get('level', gem.get('gemLevel', ''))
+                    gem_quality = gem.get('quality', gem.get('gemQuality', 0))
+                    is_support = gem.get('isSupport', gem.get('support', False))
+
+                    # Detect support gems by name if not explicitly marked
+                    if not is_support and 'support' in gem_name.lower():
+                        is_support = True
+
+                    gem_info = gem_name
+                    if gem_level:
+                        gem_info += f" (Lv{gem_level}"
+                        if gem_quality:
+                            gem_info += f"/{gem_quality}%"
+                        gem_info += ")"
+
+                    if is_support:
+                        support_gems.append(gem_info)
+                    else:
+                        main_gems.append(gem_info)
+
+                # Output this skill group
+                if main_gems or support_gems:
+                    slot_label = f" [{slot}]" if slot else ""
+                    response += f"\n### Skill Setup {i+1}{slot_label}\n"
+
+                    if main_gems:
+                        response += f"**Main Skill:** {', '.join(main_gems)}\n"
+
+                        # Add DPS if available
+                        for main in main_gems:
+                            main_base = main.split(' (')[0].lower()
+                            if main_base in dps_lookup:
+                                dps_data = dps_lookup[main_base]
+                                total_dps = dps_data.get('total_dps', 0)
+                                if total_dps:
+                                    response += f"**DPS:** {total_dps:,.0f}\n"
+                                break
+
+                    if support_gems:
+                        response += f"**Supports:** {', '.join(support_gems)}\n"
+
+            # Fallback: if just a name is provided
+            elif skill_name:
+                response += f"\n### {skill_name}\n"
+
+                # Check for DPS data
+                if skill_name.lower() in dps_lookup:
+                    dps_data = dps_lookup[skill_name.lower()]
+                    total_dps = dps_data.get('total_dps', 0)
+                    dot_dps = dps_data.get('dot_dps', 0)
+                    if total_dps:
+                        response += f"- Hit DPS: {total_dps:,.0f}\n"
+                    if dot_dps:
+                        response += f"- DoT DPS: {dot_dps:,.0f}\n"
+
+            # Structure 3: skill has nested 'dps' entries directly
+            elif skill.get('dps'):
+                for dps_entry in skill.get('dps', []):
+                    dps_name = dps_entry.get('name', 'Unknown Skill')
+                    total_dps = dps_entry.get('dps', 0)
+                    response += f"\n### {dps_name}\n"
+                    if total_dps:
+                        response += f"- DPS: {total_dps:,.0f}\n"
+
+        # If we only have skill_dps but no detailed skills array
+        if not skills and skill_dps:
+            response += "\n### Calculated Skill DPS\n"
+            for dps_entry in skill_dps:
+                name = dps_entry.get('skill_name', 'Unknown')
+                total = dps_entry.get('total_dps', 0)
+                dot = dps_entry.get('dot_dps', 0)
+                response += f"- **{name}**: "
+                if total:
+                    response += f"{total:,.0f} DPS"
+                if dot:
+                    response += f" + {dot:,.0f} DoT"
+                response += "\n"
+
+        return response
 
     def _format_player_comparison(self, comparison: dict) -> str:
         """Format comparison to top players"""
