@@ -5098,16 +5098,41 @@ Could not extract account and character from URL.
         # Process each skill group
         for i, skill in enumerate(skills):
             # Handle different possible structures from poe.ninja
-            # Structure 1: skill has 'name' directly
+            # Structure 1: poe.ninja format with 'allGems' array (first = main, rest = supports)
             # Structure 2: skill has 'gems' array with main + supports
-            # Structure 3: skill has 'dps' array with skill info
+            # Structure 3: skill has 'name' directly
+            # Structure 4: skill has 'dps' array with skill info
 
-            skill_name = skill.get('name', '')
+            all_gems = skill.get('allGems', [])
             gems = skill.get('gems', [])
+            skill_name = skill.get('name', '')
             slot = skill.get('slot', skill.get('socketGroup', ''))
+            dps_entries = skill.get('dps', [])
 
-            # If we have a gems array, parse it
-            if gems:
+            # Structure 1: poe.ninja 'allGems' format (most common)
+            if all_gems:
+                # First gem is the main skill, rest are supports
+                main_gem = all_gems[0] if all_gems else {}
+                main_name = main_gem.get('name', 'Unknown Skill')
+                support_gems = [g.get('name', '') for g in all_gems[1:] if g.get('name')]
+
+                # Get DPS from the skill's dps array
+                dps_str = ""
+                if dps_entries:
+                    for d in dps_entries:
+                        dps_val = d.get('dps', 0)
+                        if dps_val:
+                            dps_str = f" ({dps_val:,.0f} DPS)"
+                            break
+
+                response += f"\n### {main_name}{dps_str}\n"
+                if support_gems:
+                    response += f"**Supports:** {', '.join(support_gems)}\n"
+                else:
+                    response += "(No supports)\n"
+
+            # Structure 2: Generic 'gems' array with isSupport flags
+            elif gems:
                 main_gems = []
                 support_gems = []
 
@@ -5154,7 +5179,7 @@ Could not extract account and character from URL.
                     if support_gems:
                         response += f"**Supports:** {', '.join(support_gems)}\n"
 
-            # Fallback: if just a name is provided
+            # Structure 3: Just a skill name
             elif skill_name:
                 response += f"\n### {skill_name}\n"
 
@@ -5168,9 +5193,9 @@ Could not extract account and character from URL.
                     if dot_dps:
                         response += f"- DoT DPS: {dot_dps:,.0f}\n"
 
-            # Structure 3: skill has nested 'dps' entries directly
-            elif skill.get('dps'):
-                for dps_entry in skill.get('dps', []):
+            # Structure 4: Only 'dps' entries
+            elif dps_entries:
+                for dps_entry in dps_entries:
                     dps_name = dps_entry.get('name', 'Unknown Skill')
                     total_dps = dps_entry.get('dps', 0)
                     response += f"\n### {dps_name}\n"
