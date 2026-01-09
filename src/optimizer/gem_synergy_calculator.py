@@ -22,8 +22,14 @@ import math
 # Import fresh data provider - Single Source of Truth
 try:
     from ..data.fresh_data_provider import get_fresh_data_provider
+    from ..database.manager import DatabaseManager
+    from ..database.models import SupportGem
 except ImportError:
     from src.data.fresh_data_provider import get_fresh_data_provider
+    from src.database.manager import DatabaseManager
+    from src.database.models import SupportGem
+
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -250,6 +256,180 @@ class GemSynergyCalculator:
             )
 
         logger.info(f"FreshDataProvider: {len(self.spell_gems)} active skills, {len(support_gems)} support gems")
+
+    async def load_support_gems_from_database(self, db_manager: DatabaseManager) -> int:
+        """
+        Load support gems from SQLite database (authoritative source with display names).
+
+        This method replaces support gems loaded from FreshDataProvider with the
+        complete data from the SQLite database, which includes proper display names
+        and modifier data.
+
+        Args:
+            db_manager: Initialized DatabaseManager instance
+
+        Returns:
+            Number of support gems loaded
+        """
+        try:
+            async with db_manager.async_session() as session:
+                result = await session.execute(select(SupportGem))
+                db_gems = result.scalars().all()
+
+                if not db_gems:
+                    logger.warning("No support gems found in database, keeping FreshDataProvider data")
+                    return 0
+
+                # Clear existing support gems and reload from database
+                self.support_gems.clear()
+
+                for gem in db_gems:
+                    # Parse modifiers to extract relevant stats
+                    stats = self._parse_support_gem_modifiers(gem.modifiers or [])
+
+                    # Create lookup keys - both by display name and normalized name
+                    display_name = gem.name  # e.g., "Rapid Attacks I"
+                    normalized_name = display_name.lower().replace(" ", "_")
+
+                    support_effect = SupportGemEffect(
+                        name=display_name,
+                        tags=gem.tags or [],
+                        more_damage=stats.get('more_damage', 0.0),
+                        more_cast_speed=stats.get('more_cast_speed', 0.0),
+                        more_aoe=stats.get('more_aoe', 0.0),
+                        more_crit_chance=stats.get('more_crit_chance', 0.0),
+                        more_crit_damage=stats.get('more_crit_damage', 0.0),
+                        less_damage=stats.get('less_damage', 0.0),
+                        less_cast_speed=stats.get('less_cast_speed', 0.0),
+                        increased_damage=stats.get('increased_damage', 0.0),
+                        increased_cast_speed=stats.get('increased_cast_speed', 0.0),
+                        increased_crit_chance=stats.get('increased_crit_chance', 0.0),
+                        spirit_cost=gem.spirit_cost or 0,
+                        mana_cost_multiplier=gem.mana_multiplier or 100.0,
+                        utility_effects=stats.get('utility_effects', []),
+                        required_tags=gem.compatible_tags or [],
+                        incompatible_with=[]
+                    )
+
+                    # Store by multiple keys for flexible lookup
+                    self.support_gems[normalized_name] = support_effect
+                    self.support_gems[display_name.lower()] = support_effect
+
+                    # Also store without tier suffix for generic lookup
+                    # e.g., "rapid attacks i" -> also accessible as "rapid attacks"
+                    base_name = self._get_base_gem_name(display_name)
+                    if base_name.lower() != display_name.lower():
+                        # Only add if not already a higher tier
+                        if base_name.lower() not in self.support_gems:
+                            self.support_gems[base_name.lower()] = support_effect
+
+                logger.info(f"Loaded {len(db_gems)} support gems from SQLite database (replacing FreshDataProvider data)")
+                return len(db_gems)
+
+        except Exception as e:
+            logger.error(f"Failed to load support gems from database: {e}", exc_info=True)
+            return 0
+
+    def _parse_support_gem_modifiers(self, modifiers: List) -> Dict[str, Any]:
+        """
+        Parse support gem modifiers from database format to SupportGemEffect stats.
+
+        Database format: [['stat_id', value], ['stat_id', value], ...]
+
+        Args:
+            modifiers: List of [stat_id, value] pairs from database
+
+        Returns:
+            Dict of parsed stats for SupportGemEffect
+        """
+        stats = {
+            'more_damage': 0.0,
+            'more_cast_speed': 0.0,
+            'more_aoe': 0.0,
+            'more_crit_chance': 0.0,
+            'more_crit_damage': 0.0,
+            'less_damage': 0.0,
+            'less_cast_speed': 0.0,
+            'increased_damage': 0.0,
+            'increased_cast_speed': 0.0,
+            'increased_crit_chance': 0.0,
+            'utility_effects': []
+        }
+
+        if not modifiers:
+            return stats
+
+        # Mapping of stat IDs to our stat fields
+        # Format: stat_id -> (field_name, multiplier)
+        stat_mapping = {
+            # More multipliers (multiplicative)
+            'support_gem_damage_+%_final': ('more_damage', 1.0),
+            'support_gem_elemental_damage_+%_final': ('more_damage', 1.0),
+            'support_attack_skills_elemental_damage_+%_final': ('more_damage', 1.0),
+            'support_faster_attacks_damage_+%_final': ('less_damage', -1.0),  # Negative = less
+            'support_increased_area_damage_+%_final': ('more_damage', 1.0),
+            'support_far_combat_attack_damage_+%_final_from_distance': ('more_damage', 1.0),
+
+            # Cast/Attack speed
+            'attack_speed_+%': ('increased_cast_speed', 1.0),
+            'cast_speed_+%': ('increased_cast_speed', 1.0),
+            'reload_speed_+%': ('increased_cast_speed', 0.5),  # Partial effect on overall speed
+
+            # Area of Effect
+            'base_skill_area_of_effect_+%': ('more_aoe', 1.0),
+
+            # Critical
+            'critical_strike_chance_+%': ('increased_crit_chance', 1.0),
+            'support_inevitable_criticals_critical_strike_chance_+%_per_second': ('increased_crit_chance', 1.0),
+
+            # Utility effects (flagged, not numeric)
+            'support_chain_hit_count_+': ('utility_effects', 'chain'),
+            'support_fork_forked_projectiles_add': ('utility_effects', 'fork'),
+            'support_pierce_pierce_chance_%': ('utility_effects', 'pierce'),
+            'support_conduction_chance_to_shock_+%_final': ('utility_effects', 'shock'),
+            'support_hypothermia_hit_damage_freeze_multiplier_+%_final': ('utility_effects', 'freeze'),
+        }
+
+        for mod in modifiers:
+            if not isinstance(mod, (list, tuple)) or len(mod) < 2:
+                continue
+
+            stat_id, value = mod[0], mod[1]
+
+            # Check direct mapping
+            if stat_id in stat_mapping:
+                field, multiplier = stat_mapping[stat_id]
+                if field == 'utility_effects':
+                    stats['utility_effects'].append(multiplier)
+                else:
+                    stats[field] += float(value) * multiplier
+
+            # Check for generic patterns
+            elif '_damage_+%_final' in stat_id:
+                if value < 0:
+                    stats['less_damage'] += abs(float(value))
+                else:
+                    stats['more_damage'] += float(value)
+            elif '_damage_+%' in stat_id and '_final' not in stat_id:
+                stats['increased_damage'] += float(value)
+            elif 'attack_speed' in stat_id or 'cast_speed' in stat_id:
+                stats['increased_cast_speed'] += float(value)
+
+        return stats
+
+    def _get_base_gem_name(self, gem_name: str) -> str:
+        """
+        Get base gem name without tier suffix.
+
+        Args:
+            gem_name: Full gem name like "Rapid Attacks III"
+
+        Returns:
+            Base name like "Rapid Attacks"
+        """
+        # Remove Roman numeral suffixes
+        import re
+        return re.sub(r'\s+[IVX]+$', '', gem_name).strip()
 
     def _load_pob_complete_skills(self):
         """
