@@ -19,6 +19,44 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# PoE2 Ascendancy to Base Class mapping
+# Maps ascendancy class names to their base class
+ASCENDANCY_TO_BASE_CLASS = {
+    # Warrior ascendancies
+    "Titan": "Warrior",
+    "Warbringer": "Warrior",
+    "Smith of Kitava": "Warrior",
+    # Ranger ascendancies
+    "Deadeye": "Ranger",
+    "Pathfinder": "Ranger",
+    # Huntress ascendancies
+    "Amazon": "Huntress",
+    "Ritualist": "Huntress",
+    # Witch ascendancies
+    "Infernalist": "Witch",
+    "Blood Mage": "Witch",
+    "Bloodmage": "Witch",  # Alternate spelling
+    "Lich": "Witch",
+    "Abyssal Lich": "Witch",
+    # Sorceress ascendancies
+    "Stormweaver": "Sorceress",
+    "Chronomancer": "Sorceress",
+    "Disciple of Varashta": "Sorceress",
+    # Mercenary ascendancies
+    "Tactician": "Mercenary",
+    "Witchhunter": "Mercenary",
+    "Gemling Legionnaire": "Mercenary",
+    # Monk ascendancies
+    "Invoker": "Monk",
+    "Acolyte of Chayula": "Monk",
+    # Druid ascendancies
+    "Oracle": "Druid",
+    "Shaman": "Druid",
+}
+
+# Base classes (not ascendancies)
+BASE_CLASSES = {"Warrior", "Ranger", "Huntress", "Witch", "Sorceress", "Mercenary", "Monk", "Druid"}
+
 
 class PoeNinjaAPI:
     """
@@ -263,24 +301,31 @@ class PoeNinjaAPI:
 
         # Map all defensive stats
         stats_dict = {
-            # Core defenses
+            # Core defenses (both snake_case and camelCase for compatibility)
             "life": defensive_stats.get("life", 0),
             "energy_shield": defensive_stats.get("energyShield", 0),
+            "energyShield": defensive_stats.get("energyShield", 0),
             "mana": defensive_stats.get("mana", 0),
             "spirit": defensive_stats.get("spirit", 0),
             "evasion": defensive_stats.get("evasionRating", 0),
+            "evasionRating": defensive_stats.get("evasionRating", 0),
             "armor": defensive_stats.get("armour", 0),
+            "armour": defensive_stats.get("armour", 0),
 
             # Attributes
             "strength": defensive_stats.get("strength", 0),
             "dexterity": defensive_stats.get("dexterity", 0),
             "intelligence": defensive_stats.get("intelligence", 0),
 
-            # Resistances
+            # Resistances (both snake_case and camelCase for compatibility)
             "fire_res": defensive_stats.get("fireResistance", 0),
             "cold_res": defensive_stats.get("coldResistance", 0),
             "lightning_res": defensive_stats.get("lightningResistance", 0),
             "chaos_res": defensive_stats.get("chaosResistance", 0),
+            "fireResistance": defensive_stats.get("fireResistance", 0),
+            "coldResistance": defensive_stats.get("coldResistance", 0),
+            "lightningResistance": defensive_stats.get("lightningResistance", 0),
+            "chaosResistance": defensive_stats.get("chaosResistance", 0),
             "fire_res_overcap": defensive_stats.get("fireResistanceOverCap", 0),
             "cold_res_overcap": defensive_stats.get("coldResistanceOverCap", 0),
             "lightning_res_overcap": defensive_stats.get("lightningResistanceOverCap", 0),
@@ -336,10 +381,24 @@ class PoeNinjaAPI:
                 })
 
         # Build normalized data structure
+        # Detect ascendancy from class field
+        raw_class = api_data.get("class", "Unknown")
+        if raw_class in ASCENDANCY_TO_BASE_CLASS:
+            base_class = ASCENDANCY_TO_BASE_CLASS[raw_class]
+            ascendancy = raw_class
+        elif raw_class in BASE_CLASSES:
+            base_class = raw_class
+            ascendancy = None
+        else:
+            # Unknown class - keep as-is
+            base_class = raw_class
+            ascendancy = None
+
         normalized = {
             "name": api_data.get("name", "Unknown"),
             "account": api_data.get("account", "Unknown"),
-            "class": api_data.get("class", "Unknown"),
+            "class": base_class,
+            "ascendancy": ascendancy,
             "level": api_data.get("level", 0),
             "league": api_data.get("league", "Unknown"),
 
@@ -559,10 +618,15 @@ class PoeNinjaAPI:
             else:
                 char_data = data
 
+            # Detect ascendancy from class field
+            raw_class = char_data.get("class", "Unknown")
+            base_class, ascendancy = self._detect_ascendancy(raw_class)
+
             return {
                 "name": character,
                 "account": account,
-                "class": char_data.get("class", "Unknown"),
+                "class": base_class,
+                "ascendancy": ascendancy,
                 "level": char_data.get("level", 0),
                 "league": char_data.get("league", "Unknown"),
                 "items": char_data.get("items", []),
@@ -578,10 +642,15 @@ class PoeNinjaAPI:
 
     def _extract_character_from_data(self, data: Dict, account: str, character: str) -> Dict[str, Any]:
         """Extract character data from __data format"""
+        # Detect ascendancy from class field
+        raw_class = data.get("class", "Unknown")
+        base_class, ascendancy = self._detect_ascendancy(raw_class)
+
         return {
             "name": character,
             "account": account,
-            "class": data.get("class", "Unknown"),
+            "class": base_class,
+            "ascendancy": ascendancy,
             "level": data.get("level", 0),
             "league": data.get("league", "Unknown"),
             "items": data.get("items", []),
@@ -617,12 +686,31 @@ class PoeNinjaAPI:
             logger.error(f"HTML structure parsing error: {e}")
             return self._create_minimal_character(account, character)
 
+    def _detect_ascendancy(self, raw_class: str) -> tuple:
+        """
+        Detect if a class name is an ascendancy and return (base_class, ascendancy).
+
+        Args:
+            raw_class: The class name from API (could be base class or ascendancy)
+
+        Returns:
+            Tuple of (base_class, ascendancy) where ascendancy is None if not ascended
+        """
+        if raw_class in ASCENDANCY_TO_BASE_CLASS:
+            return (ASCENDANCY_TO_BASE_CLASS[raw_class], raw_class)
+        elif raw_class in BASE_CLASSES:
+            return (raw_class, None)
+        else:
+            # Unknown class - keep as-is
+            return (raw_class, None)
+
     def _create_minimal_character(self, account: str, character: str) -> Dict[str, Any]:
         """Create minimal character data structure"""
         return {
             "name": character,
             "account": account,
             "class": "Unknown",
+            "ascendancy": None,
             "level": 0,
             "league": "Unknown",
             "items": [],
