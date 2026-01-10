@@ -1263,6 +1263,15 @@ If the character is on the ladder, try `compare_to_top_players` instead.
             fire_res = stats.get("fireResistance", 0) or 0
             cold_res = stats.get("coldResistance", 0) or 0
             lightning_res = stats.get("lightningResistance", 0) or 0
+            chaos_res = stats.get("chaosResistance", 0) or 0
+
+            # Store resistances in analysis for display
+            analysis["resistances"] = {
+                "fire": fire_res,
+                "cold": cold_res,
+                "lightning": lightning_res,
+                "chaos": chaos_res
+            }
 
             if fire_res >= 75 and cold_res >= 75 and lightning_res >= 75:
                 analysis["strengths"].append("All elemental resistances capped")
@@ -1275,6 +1284,12 @@ If the character is on the ladder, try `compare_to_top_players` instead.
                 if lightning_res < 75:
                     uncapped.append(f"Lightning: {lightning_res}")
                 analysis["weaknesses"].append(f"Uncapped resistances ({', '.join(uncapped)})")
+
+            # Warn about dangerously low chaos resistance
+            if chaos_res < 0:
+                analysis["weaknesses"].append(f"Negative chaos resistance ({chaos_res}%)")
+            elif chaos_res < 30:
+                analysis["weaknesses"].append(f"Low chaos resistance ({chaos_res}%)")
 
             # Simple tier calculation
             score = 0.0
@@ -4931,12 +4946,16 @@ Could not extract account and character from URL.
 
     def _format_character_analysis(self, character_data: dict, analysis: dict, recommendations: str, passive_analysis=None) -> str:
         """Format character analysis response"""
+        # Format ascendancy display - show "Not Selected" if None
+        ascendancy = character_data.get('ascendancy')
+        ascendancy_display = ascendancy if ascendancy else "Not Selected"
+
         response = f"""# Character Analysis: {character_data.get('name', 'Unknown')}
 
 ## Basic Info
 - Class: {character_data.get('class', 'Unknown')}
 - Level: {character_data.get('level', '?')}
-- Ascendancy: {character_data.get('ascendancy', 'None')}
+- Ascendancy: {ascendancy_display}
 
 ## Build Score
 - Overall Score: {analysis.get('overall_score', 0):.2f}/1.00
@@ -4952,7 +4971,7 @@ Could not extract account and character from URL.
 - DPS: {analysis.get('dps', 0):,.0f}
 - Effective HP: {analysis.get('ehp', 0):,.0f}
 - Defense Rating: {analysis.get('defense_rating', 0):.2f}/1.00
-"""
+{self._format_resistances(analysis.get('resistances', {}))}"""
 
         # Add passive tree analysis if available
         if passive_analysis:
@@ -5077,6 +5096,33 @@ Could not extract account and character from URL.
     def _format_list(self, items: List[str]) -> str:
         """Format a list of strings as markdown"""
         return "\n".join(f"- {item}" for item in items) if items else "None identified"
+
+    def _format_resistances(self, resistances: dict) -> str:
+        """Format resistances as a display section"""
+        if not resistances:
+            return ""
+
+        fire = resistances.get('fire', 0)
+        cold = resistances.get('cold', 0)
+        lightning = resistances.get('lightning', 0)
+        chaos = resistances.get('chaos', 0)
+
+        # Format with cap indicators
+        def format_res(value, cap=75):
+            if value >= cap:
+                return f"{value}% (capped)"
+            elif value < 0:
+                return f"{value}% (NEGATIVE)"
+            else:
+                return f"{value}%"
+
+        return f"""
+## Resistances
+- Fire: {format_res(fire)}
+- Cold: {format_res(cold)}
+- Lightning: {format_res(lightning)}
+- Chaos: {format_res(chaos)}
+"""
 
     def _format_skills_section(self, character_data: dict) -> str:
         """Format skill gems and their support links from character data"""
