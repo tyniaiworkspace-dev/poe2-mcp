@@ -72,6 +72,8 @@ class BuildAnalysis:
     nearest_notables: List[Tuple[ResolvedNode, int]]  # (node, distance)
     class_start: Optional[str] = None
     unresolved_nodes: List[int] = field(default_factory=list)  # Node IDs not in database (e.g., ascendancy)
+    tree_region: Optional[str] = None  # Estimated tree region based on coordinate analysis
+    connectivity_note: Optional[str] = None  # Explanation of connectivity status
 
 
 class PassiveTreeResolver:
@@ -94,14 +96,148 @@ class PassiveTreeResolver:
         print(f"Distance: {path.distance} nodes")
     """
 
-    # Class starting node IDs
+    # Class starting node IDs (PoE2)
+    # PoE2 has 8 playable classes but only 6 starting positions (hexagon pattern)
+    # Classes with the same attribute(s) share a starting position.
+    # Position naming uses PSG/PoE1 internal names for the node IDs.
+    #
+    # Hexagon layout (Y negative = top, Y positive = bottom):
+    #                SORCERESS/WITCH (54447) - INT top
+    #               /                        \
+    #   DRUID (61525)                        MONK (44683)
+    #   STR/INT top-left                     DEX/INT top-right
+    #              |                          |
+    #   WARRIOR (47175)                      RANGER/HUNTRESS (50459)
+    #   STR bottom-left                      DEX bottom-right
+    #               \                        /
+    #                MERCENARY (50986) - STR/DEX bottom
     CLASS_STARTS = {
-        50459: "RANGER",
-        47175: "MARAUDER",
-        50986: "DUELIST",
-        61525: "TEMPLAR",
-        54447: "WITCH",
-        44683: "MERCENARY"  # SIX in data
+        47175: "WARRIOR",      # MARAUDER position - Pure STR (bottom-left)
+        50459: "RANGER",       # RANGER position - Pure DEX (bottom-right) - shared by Ranger & Huntress
+        54447: "SORCERESS",    # WITCH position - Pure INT (top) - shared by Sorceress & Witch
+        50986: "MERCENARY",    # DUELIST position - STR/DEX hybrid (bottom-center)
+        61525: "DRUID",        # TEMPLAR position - STR/INT hybrid (top-left)
+        44683: "MONK",         # SHADOW position - DEX/INT hybrid (top-right)
+    }
+
+    # Reverse mapping: class name to starting node ID
+    # Multiple classes can map to the same node (shared positions)
+    CLASS_TO_START_NODE = {
+        "WARRIOR": 47175,
+        "RANGER": 50459,
+        "HUNTRESS": 50459,     # Huntress (DEX) shares Ranger's starting position
+        "SORCERESS": 54447,
+        "WITCH": 54447,        # Witch (INT) shares Sorceress's starting position
+        "MERCENARY": 50986,
+        "DRUID": 61525,
+        "MONK": 44683,
+    }
+
+    # PoE2 Ascendancies mapped to base class
+    ASCENDANCY_TO_CLASS = {
+        # Warrior ascendancies (STR)
+        "Titan": "WARRIOR",
+        "Warbringer": "WARRIOR",
+        "Smith of Kitava": "WARRIOR",
+        # Ranger ascendancies (DEX)
+        "Deadeye": "RANGER",
+        "Pathfinder": "RANGER",
+        # Huntress ascendancies (DEX) - shares tree position with Ranger
+        "Amazon": "HUNTRESS",
+        "Ritualist": "HUNTRESS",
+        # Sorceress ascendancies (INT)
+        "Stormweaver": "SORCERESS",
+        "Chronomancer": "SORCERESS",
+        "Disciple of Varashta": "SORCERESS",
+        # Witch ascendancies (INT) - shares tree position with Sorceress
+        "Infernalist": "WITCH",
+        "Blood Mage": "WITCH",
+        "Bloodmage": "WITCH",  # Alternate spelling
+        "Lich": "WITCH",
+        "Abyssal Lich": "WITCH",
+        # Mercenary ascendancies (STR/DEX)
+        "Witchhunter": "MERCENARY",
+        "Gemling Legionnaire": "MERCENARY",
+        "Tactician": "MERCENARY",
+        # Druid ascendancies (STR/INT)
+        "Oracle": "DRUID",
+        "Shaman": "DRUID",
+        # Monk ascendancies (DEX/INT)
+        "Invoker": "MONK",
+        "Acolyte of Chayula": "MONK",
+    }
+
+    # Tree region boundaries (computed from Voronoi clustering of 4,958 non-ascendancy nodes)
+    # Each node is assigned to its nearest class starting position.
+    # Positive Y = bottom of tree, Negative Y = top
+    # Positive X = right, Negative X = left
+    # Boundaries represent the actual min/max coordinates of assigned nodes.
+    #
+    # NOTE: Multiple classes share the same region when they share the same starting position.
+    # E.g., Ranger and Huntress both use the RANGER region, Sorceress and Witch both use SORCERESS.
+    TREE_REGIONS = {
+        "MONK": {
+            "x_range": (1270.4, 17657.2),
+            "y_range": (-10429.8, -82.2),
+            "centroid": (7948.5, -4321.4),
+            "node_count": 739,
+            "description": "Top-right, DEX/INT hybrid, elemental martial arts"
+        },
+        "MERCENARY": {
+            "x_range": (-8095.0, 4874.5),
+            "y_range": (1469.8, 20053.8),
+            "centroid": (-327.4, 9336.1),
+            "node_count": 816,
+            "description": "Bottom-center, STR/DEX hybrid, crossbow and grenades"
+        },
+        "RANGER": {
+            "x_range": (1274.7, 21814.3),
+            "y_range": (-2.4, 9944.3),
+            "centroid": (8069.1, 4128.0),
+            "node_count": 840,
+            "description": "Bottom-right, pure DEX, bows and evasion (also Huntress)"
+        },
+        "SORCERESS": {
+            "x_range": (-6298.3, 6071.3),
+            "y_range": (-18720.7, -1404.7),
+            "centroid": (-185.8, -9093.6),
+            "node_count": 862,
+            "description": "Top-center, pure INT, elemental spells (also Witch)"
+        },
+        "WARRIOR": {
+            "x_range": (-22167.2, -1271.2),
+            "y_range": (0.5, 9579.9),
+            "centroid": (-8128.1, 4300.7),
+            "node_count": 726,
+            "description": "Bottom-left, pure STR, melee and armor"
+        },
+        "DRUID": {
+            "x_range": (-22597.4, -1245.2),
+            "y_range": (-10437.4, -155.3),
+            "centroid": (-8159.0, -4008.8),
+            "node_count": 975,
+            "description": "Top-left, STR/INT hybrid, shapeshifting and nature magic"
+        },
+    }
+
+    # Alias regions for classes that share positions
+    # These map the alternate class name to the canonical region
+    REGION_ALIASES = {
+        "HUNTRESS": "RANGER",   # Huntress (DEX) shares Ranger's region
+        "WITCH": "SORCERESS",   # Witch (INT) shares Sorceress's region
+    }
+
+    # Class starting positions (authoritative coordinates from PSG data)
+    # Note: Multiple classes share the same starting coordinates
+    CLASS_START_COORDS = {
+        "RANGER": {"x": 1274.675, "y": 735.845},       # Also Huntress
+        "HUNTRESS": {"x": 1274.675, "y": 735.845},    # Same as Ranger
+        "WARRIOR": {"x": -1271.185, "y": 733.095},
+        "MERCENARY": {"x": 1.945, "y": 1469.815},     # Bottom center (was DUELIST)
+        "DRUID": {"x": -1245.175, "y": -728.895},     # Top-left (was TEMPLAR)
+        "SORCERESS": {"x": 0.005, "y": -1490.585},    # Also Witch
+        "WITCH": {"x": 0.005, "y": -1490.585},        # Same as Sorceress
+        "MONK": {"x": 1270.425, "y": -728.835},       # Top-right (was SHADOW)
     }
 
     def __init__(self, data_dir: Optional[Path] = None):
@@ -118,7 +254,9 @@ class PassiveTreeResolver:
         self.data_dir = Path(data_dir)
         self._nodes: Dict[int, dict] = {}
         self._adjacency: Dict[int, Set[int]] = {}
+        self._node_regions: Dict[int, str] = {}  # Cached node -> region mapping
         self._loaded = False
+        self._regions_loaded = False
 
     def _ensure_loaded(self):
         """Load node database if not already loaded."""
@@ -156,6 +294,124 @@ class PassiveTreeResolver:
         except Exception as e:
             logger.error(f"Failed to load PSG database: {e}")
             self._loaded = True
+
+    def _ensure_regions_loaded(self):
+        """Load precomputed node region mappings if available."""
+        if self._regions_loaded:
+            return
+
+        regions_path = self.data_dir / "passive_tree_regions.json"
+        if not regions_path.exists():
+            logger.info("Region mapping file not found - will compute regions on-the-fly")
+            self._regions_loaded = True
+            return
+
+        try:
+            with open(regions_path, 'r', encoding='utf-8') as f:
+                regions_data = json.load(f)
+
+            # Load precomputed node -> region mapping
+            node_regions = regions_data.get('node_regions', {})
+            for str_id, region in node_regions.items():
+                self._node_regions[int(str_id)] = region
+
+            logger.info(f"Loaded {len(self._node_regions)} node region mappings")
+            self._regions_loaded = True
+
+        except Exception as e:
+            logger.error(f"Failed to load region mappings: {e}")
+            self._regions_loaded = True
+
+    def _compute_node_region(self, x: float, y: float) -> str:
+        """
+        Compute the region for a node based on its coordinates.
+
+        Uses Voronoi-style nearest-neighbor assignment to the closest
+        class starting position.
+
+        Args:
+            x: Node X coordinate
+            y: Node Y coordinate
+
+        Returns:
+            Region name (class name)
+        """
+        import math
+
+        best_region = "UNKNOWN"
+        best_distance = float('inf')
+
+        for region_name, coords in self.CLASS_START_COORDS.items():
+            distance = math.sqrt((x - coords["x"]) ** 2 + (y - coords["y"]) ** 2)
+            if distance < best_distance:
+                best_distance = distance
+                best_region = region_name
+
+        return best_region
+
+    def get_node_region(self, node_id: int) -> Optional[str]:
+        """
+        Get the tree region for a specific node.
+
+        Uses precomputed region mappings if available, otherwise computes
+        the region based on distance to class starting positions.
+
+        Args:
+            node_id: The passive node ID
+
+        Returns:
+            Region name (e.g., "RANGER", "WARRIOR") or None if node not found
+        """
+        self._ensure_loaded()
+        self._ensure_regions_loaded()
+
+        # Check precomputed mapping first
+        if node_id in self._node_regions:
+            return self._node_regions[node_id]
+
+        # Fall back to on-the-fly computation
+        node_data = self._nodes.get(node_id)
+        if not node_data:
+            return None
+
+        x = node_data.get('x', 0.0)
+        y = node_data.get('y', 0.0)
+
+        # Check if this is an ascendancy node (they have different coordinate systems)
+        if node_data.get('is_ascendancy', False):
+            # Ascendancy nodes don't belong to main tree regions
+            return None
+
+        region = self._compute_node_region(x, y)
+        # Cache the result
+        self._node_regions[node_id] = region
+        return region
+
+    def get_nodes_in_region(self, region: str, notable_only: bool = False) -> List[int]:
+        """
+        Get all node IDs that belong to a specific region.
+
+        Args:
+            region: Region name (e.g., "RANGER", "WARRIOR")
+            notable_only: If True, only return notable nodes
+
+        Returns:
+            List of node IDs in the region
+        """
+        self._ensure_loaded()
+        self._ensure_regions_loaded()
+
+        result = []
+        for node_id in self._nodes:
+            node_region = self.get_node_region(node_id)
+            if node_region == region:
+                if notable_only:
+                    if self._nodes[node_id].get('is_notable', False):
+                        result.append(node_id)
+                else:
+                    result.append(node_id)
+
+        return result
 
     def resolve(self, node_id: int) -> Optional[ResolvedNode]:
         """
@@ -348,6 +604,20 @@ class PassiveTreeResolver:
                 class_start = class_name
                 break
 
+        # Estimate tree region based on node coordinates
+        all_resolved = keystones + notables + small_nodes + jewel_sockets
+        tree_region = self.estimate_tree_region(all_resolved)
+
+        # Generate connectivity note
+        connectivity_note = None
+        if not is_connected:
+            if unresolved:
+                connectivity_note = f"Note: {len(unresolved)} nodes not in database (likely ascendancy/special nodes). Connectivity check only considers known nodes."
+            else:
+                connectivity_note = "Some allocated nodes appear disconnected. This may indicate a tree pathing issue."
+        elif unresolved:
+            connectivity_note = f"Note: {len(unresolved)} nodes are ascendancy or special nodes not in the main tree database."
+
         return BuildAnalysis(
             total_nodes=len(node_ids),
             keystones=keystones,
@@ -357,7 +627,9 @@ class PassiveTreeResolver:
             is_connected=is_connected,
             nearest_notables=nearest_notables,
             class_start=class_start,
-            unresolved_nodes=unresolved
+            unresolved_nodes=unresolved,
+            tree_region=tree_region,
+            connectivity_note=connectivity_note
         )
 
     def _check_connectivity(self, node_ids: List[int]) -> bool:
@@ -412,6 +684,103 @@ class PassiveTreeResolver:
             self.resolve(nid) for nid in self._nodes
             if self._nodes[nid].get('is_keystone', False)
         ]
+
+    def estimate_tree_region(self, nodes: List[ResolvedNode]) -> Optional[str]:
+        """
+        Estimate which tree region a build is primarily located in.
+
+        Uses the average coordinates of allocated nodes to determine
+        which class region the build is centered in.
+
+        Returns:
+            Region name or None if cannot be determined
+        """
+        if not nodes:
+            return None
+
+        # Calculate centroid of allocated nodes
+        total_x = sum(n.x for n in nodes if n.x != 0)
+        total_y = sum(n.y for n in nodes if n.y != 0)
+        count = sum(1 for n in nodes if n.x != 0 or n.y != 0)
+
+        if count == 0:
+            return None
+
+        avg_x = total_x / count
+        avg_y = total_y / count
+
+        # Find which region the centroid is closest to
+        best_region = None
+        best_score = float('inf')
+
+        for region_name, bounds in self.TREE_REGIONS.items():
+            x_min, x_max = bounds["x_range"]
+            y_min, y_max = bounds["y_range"]
+
+            # Calculate distance to region center
+            region_center_x = (x_min + x_max) / 2
+            region_center_y = (y_min + y_max) / 2
+
+            distance = ((avg_x - region_center_x) ** 2 + (avg_y - region_center_y) ** 2) ** 0.5
+
+            if distance < best_score:
+                best_score = distance
+                best_region = region_name
+
+        return best_region
+
+    def get_region_notables(self, region: str, limit: int = 10) -> List[ResolvedNode]:
+        """
+        Get notable nodes that are within a specific tree region.
+
+        Args:
+            region: Region name (e.g., "WARRIOR", "RANGER", "HUNTRESS")
+            limit: Maximum notables to return
+
+        Returns:
+            List of notable nodes in that region
+        """
+        self._ensure_loaded()
+
+        # Handle region aliases (e.g., HUNTRESS -> RANGER, WITCH -> SORCERESS)
+        canonical_region = self.REGION_ALIASES.get(region, region)
+
+        if canonical_region not in self.TREE_REGIONS:
+            return []
+
+        bounds = self.TREE_REGIONS[canonical_region]
+        x_min, x_max = bounds["x_range"]
+        y_min, y_max = bounds["y_range"]
+
+        region_notables = []
+        for nid, node_data in self._nodes.items():
+            if not node_data.get('is_notable', False):
+                continue
+
+            x = node_data.get('x', 0)
+            y = node_data.get('y', 0)
+
+            if x_min <= x <= x_max and y_min <= y <= y_max:
+                node = self.resolve(nid)
+                if node:
+                    region_notables.append(node)
+
+            if len(region_notables) >= limit:
+                break
+
+        return region_notables
+
+    def get_class_for_ascendancy(self, ascendancy: str) -> Optional[str]:
+        """
+        Get the base class for a given ascendancy.
+
+        Args:
+            ascendancy: Ascendancy name (e.g., "Deadeye", "Infernalist")
+
+        Returns:
+            Base class name or None if unknown
+        """
+        return self.ASCENDANCY_TO_CLASS.get(ascendancy)
 
 
 # Singleton instance for convenience
