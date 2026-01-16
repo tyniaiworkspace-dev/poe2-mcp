@@ -4994,8 +4994,14 @@ Could not extract account and character from URL.
 
             response += f"- Small Nodes: {len(passive_analysis.small_nodes)}\n"
 
+            if passive_analysis.tree_region:
+                response += f"- Tree Region: {passive_analysis.tree_region}\n"
+
             if not passive_analysis.is_connected:
                 response += "- WARNING: Build has disconnected nodes!\n"
+
+            if passive_analysis.connectivity_note:
+                response += f"- {passive_analysis.connectivity_note}\n"
 
             # Show nearest unallocated notables
             if passive_analysis.nearest_notables:
@@ -5010,8 +5016,107 @@ Could not extract account and character from URL.
         if skills_section:
             response += skills_section
 
+        # Add gear section
+        gear_section = self._format_equipment_section(character_data)
+        if gear_section:
+            response += gear_section
+
         if recommendations:
             response += f"\n## AI Recommendations\n{recommendations}"
+
+        return response
+
+    def _format_equipment_section(self, character_data: dict) -> str:
+        """Format equipped gear from character data"""
+        items = character_data.get('items', [])
+        if not items:
+            return ""
+
+        response = "\n## Equipment\n"
+
+        # Define slot order for organized display
+        slot_order = [
+            'Weapon', 'Offhand', 'Helm', 'BodyArmour', 'Gloves', 'Boots',
+            'Belt', 'Amulet', 'Ring', 'Ring2', 'Flask', 'Charm'
+        ]
+
+        # Group items by slot
+        by_slot = {}
+        for item in items:
+            slot = item.get('slot', 'Unknown')
+            # Normalize slot names
+            if 'weapon' in slot.lower():
+                slot = 'Weapon'
+            elif 'offhand' in slot.lower() or 'shield' in slot.lower():
+                slot = 'Offhand'
+            elif 'helm' in slot.lower():
+                slot = 'Helm'
+            elif 'body' in slot.lower() or 'armour' in slot.lower():
+                slot = 'BodyArmour'
+            elif 'glove' in slot.lower():
+                slot = 'Gloves'
+            elif 'boot' in slot.lower():
+                slot = 'Boots'
+            elif 'belt' in slot.lower():
+                slot = 'Belt'
+            elif 'amulet' in slot.lower():
+                slot = 'Amulet'
+            elif 'ring' in slot.lower():
+                if 'Ring' in by_slot:
+                    slot = 'Ring2'
+                else:
+                    slot = 'Ring'
+            elif 'flask' in slot.lower():
+                slot = 'Flask'
+            elif 'charm' in slot.lower():
+                slot = 'Charm'
+
+            by_slot.setdefault(slot, []).append(item)
+
+        # Display items in order
+        for slot in slot_order:
+            if slot not in by_slot:
+                continue
+            for item in by_slot[slot]:
+                name = item.get('name', '') or item.get('type_line', 'Unknown Item')
+                type_line = item.get('type_line', '')
+                rarity = item.get('rarity', 'Normal')
+                corrupted = " (Corrupted)" if item.get('corrupted') else ""
+
+                # Format rarity display
+                if isinstance(rarity, int):
+                    rarity_map = {0: 'Normal', 1: 'Magic', 2: 'Rare', 3: 'Unique'}
+                    rarity = rarity_map.get(rarity, 'Unknown')
+
+                # Build item header
+                if rarity == 'Unique':
+                    response += f"\n### {slot}: {name}{corrupted}\n"
+                else:
+                    response += f"\n### {slot}: {name or type_line}{corrupted}\n"
+
+                if type_line and type_line != name:
+                    response += f"*{type_line}*\n"
+
+                # Show key mods (limit to avoid wall of text)
+                mods = item.get('mods', {})
+                shown_mods = 0
+                max_mods = 5
+
+                if mods.get('implicit'):
+                    for mod in mods['implicit'][:2]:
+                        response += f"- {mod} (implicit)\n"
+                        shown_mods += 1
+
+                if mods.get('explicit') and shown_mods < max_mods:
+                    for mod in mods['explicit'][:max_mods - shown_mods]:
+                        response += f"- {mod}\n"
+
+        # Show any remaining slots not in order
+        for slot, slot_items in by_slot.items():
+            if slot not in slot_order:
+                for item in slot_items:
+                    name = item.get('name', '') or item.get('type_line', 'Unknown')
+                    response += f"\n### {slot}: {name}\n"
 
         return response
 
