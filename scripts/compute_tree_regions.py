@@ -5,13 +5,13 @@ Compute authoritative tree regions from passive node coordinates.
 Uses Voronoi-style distance-based clustering to assign each node to its
 nearest class starting position.
 
-Class starting positions form a hexagon:
-- RANGER: (1275, 736) - bottom-right
-- WARRIOR: (-1271, 733) - bottom-left
-- MONK: (2, 1470) - bottom-center
-- WITCH: (-1245, -729) - top-left
-- SORCERESS: (0, -1491) - top-center
-- MERCENARY: (1270, -729) - top-right
+Class starting positions form a hexagon (PoE2 classes):
+- WARRIOR: (-1271, 733) - bottom-left (Pure STR)
+- RANGER: (1275, 736) - bottom-right (Pure DEX, shared with HUNTRESS)
+- SORCERESS: (0, -1491) - top-center (Pure INT, shared with WITCH)
+- MERCENARY: (2, 1470) - bottom-center (STR/DEX hybrid)
+- DRUID: (-1245, -729) - top-left (STR/INT hybrid)
+- MONK: (1270, -729) - top-right (DEX/INT hybrid)
 
 Output:
 - data/passive_tree_regions.json: Complete region mapping
@@ -25,13 +25,15 @@ from collections import defaultdict
 
 
 # Class starting positions (authoritative coordinates from psg_passive_nodes.json)
+# FIXED: Correct node-to-class mappings for PoE2
+# Note: HUNTRESS shares RANGER position, WITCH shares SORCERESS position
 CLASS_STARTS = {
-    "RANGER": {"node_id": 50459, "x": 1274.675, "y": 735.845},
-    "WARRIOR": {"node_id": 47175, "x": -1271.185, "y": 733.095},
-    "MONK": {"node_id": 50986, "x": 1.945, "y": 1469.815},
-    "WITCH": {"node_id": 61525, "x": -1245.175, "y": -728.895},
-    "SORCERESS": {"node_id": 54447, "x": 0.005, "y": -1490.585},
-    "MERCENARY": {"node_id": 44683, "x": 1270.425, "y": -728.835},
+    "WARRIOR": {"node_id": 47175, "x": -1271.185, "y": 733.095},      # Pure STR (bottom-left)
+    "RANGER": {"node_id": 50459, "x": 1274.675, "y": 735.845},        # Pure DEX (bottom-right)
+    "SORCERESS": {"node_id": 54447, "x": 0.005, "y": -1490.585},      # Pure INT (top-center)
+    "MERCENARY": {"node_id": 50986, "x": 1.945, "y": 1469.815},       # STR/DEX hybrid (bottom-center)
+    "DRUID": {"node_id": 61525, "x": -1245.175, "y": -728.895},       # STR/INT hybrid (top-left)
+    "MONK": {"node_id": 44683, "x": 1270.425, "y": -728.835},         # DEX/INT hybrid (top-right)
 }
 
 

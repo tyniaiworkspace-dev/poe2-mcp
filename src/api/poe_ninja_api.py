@@ -472,6 +472,24 @@ class PoeNinjaAPI:
                 for jewel in api_data.get("jewels", [])
             ],
 
+            # Charms (PoE2 new item type - triggered effects)
+            "charms": [
+                {
+                    "name": charm.get("itemData", {}).get("name") or charm.get("itemData", {}).get("typeLine", "Unknown Charm"),
+                    "type_line": charm.get("itemData", {}).get("typeLine", ""),
+                    "base_type": charm.get("itemData", {}).get("baseType", ""),
+                    "item_level": charm.get("itemData", {}).get("ilvl", 0),
+                    "rarity": charm.get("itemData", {}).get("frameType", 0),
+                    "corrupted": charm.get("itemData", {}).get("corrupted", False),
+                    "mods": {
+                        "implicit": charm.get("itemData", {}).get("implicitMods", []),
+                        "explicit": charm.get("itemData", {}).get("explicitMods", []),
+                    },
+                    "icon": charm.get("itemData", {}).get("icon", "")
+                }
+                for charm in api_data.get("charms", [])
+            ],
+
             # Path of Building export
             "pob_export": api_data.get("pathOfBuildingExport", ""),
 
@@ -491,7 +509,7 @@ class PoeNinjaAPI:
         logger.info(f"   Defenses - Life: {stats_dict.get('life')}, ES: {stats_dict.get('energy_shield')}, EHP: {stats_dict.get('effective_health_pool')}")
         logger.info(f"   Skills with DPS: {len(skill_dps)}")
         logger.info(f"   Keystones: {len(normalized['keystones'])}")
-        logger.info(f"   Items: {len(normalized['items'])}, Flasks: {len(normalized['flasks'])}, Jewels: {len(normalized['jewels'])}")
+        logger.info(f"   Items: {len(normalized['items'])}, Flasks: {len(normalized['flasks'])}, Jewels: {len(normalized['jewels'])}, Charms: {len(normalized['charms'])}")
 
         return normalized
 
@@ -633,6 +651,9 @@ class PoeNinjaAPI:
                 "skills": char_data.get("skills", []),
                 "passives": char_data.get("passiveSkills", []),
                 "stats": char_data.get("stats", {}),
+                "flasks": char_data.get("flasks", []),
+                "jewels": char_data.get("jewels", []),
+                "charms": char_data.get("charms", []),
                 "source": "poe.ninja",
                 "fetched_at": datetime.utcnow().isoformat()
             }
@@ -657,6 +678,9 @@ class PoeNinjaAPI:
             "skills": data.get("skills", []),
             "passives": data.get("passives", []),
             "stats": data.get("stats", {}),
+            "flasks": data.get("flasks", []),
+            "jewels": data.get("jewels", []),
+            "charms": data.get("charms", []),
             "source": "poe.ninja",
             "fetched_at": datetime.utcnow().isoformat()
         }
@@ -717,6 +741,9 @@ class PoeNinjaAPI:
             "skills": [],
             "passives": [],
             "stats": {},
+            "flasks": [],
+            "jewels": [],
+            "charms": [],
             "source": "poe.ninja (minimal)",
             "fetched_at": datetime.utcnow().isoformat()
         }

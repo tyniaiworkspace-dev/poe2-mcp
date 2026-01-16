@@ -623,6 +623,8 @@ class CharacterFetcher:
             'passive_tree': passive_data,
             'keystones': char_model.get('keystones', []),
             'jewels': char_model.get('jewels', []),
+            'flasks': char_model.get('flasks', []),
+            'charms': char_model.get('charms', []),
             'stats': char_model.get('defensiveStats', {}),
             'pob_export': char_model.get('pathOfBuildingExport', ''),
             'raw_data': raw_data  # Keep original data for reference

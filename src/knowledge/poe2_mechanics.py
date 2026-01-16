@@ -1071,75 +1071,86 @@ CHANGES from PoE1:
         self.mechanics['leech'] = MechanicExplanation(
             name="Life Leech",
             category=MechanicCategory.RESOURCES,
-            short_description="Recover life based on damage dealt",
+            short_description="Recover life based on damage dealt - NO CAP in PoE2, balanced by monster resistance",
             detailed_explanation="""
 Life Leech allows you to recover life based on the damage you deal. When you hit
 an enemy with an attack that has leech, a portion of the damage dealt is recovered
 as life over time.
 
-IMPORTANT CONCEPTS:
+IMPORTANT CONCEPTS (PoE2 DIFFERS FROM PoE1):
 - Leech RATE: How much damage is converted to leech (e.g., 5% of physical damage)
-- Leech INSTANCE: Each hit creates a leech instance that heals over time
-- Leech CAP: Maximum life recovered per second from all leech (default 20% of max life)
+- Leech INSTANCE: Each hit creates a leech instance that heals over 1 SECOND (base)
+- NO LEECH CAP: PoE2 has NO maximum leech per second (unlike PoE1's 20% cap)
+- MONSTER LEECH RESISTANCE: Scales with monster level, reduces leech effectiveness
 - OVERLEECH: Ability for leech to continue past full life (requires specific sources)
 
 By default, leech stops when you reach full life. Overleech (from items like
-Couture of Crimson or passives like Fast Metabolism) allows leech instances to
-continue healing even at full life, creating a buffer against incoming damage.
+Couture of Crimson, Life Leech III gem, or passives like Fast Metabolism) allows
+leech instances to continue healing even at full life, creating a buffer.
 """,
             how_it_works="""
 1. You deal damage with a hit that has life leech
-2. Leech amount = Damage × Leech Rate (e.g., 2000 damage × 5% = 100 life)
-3. A leech instance is created that heals over time
-4. Default instance rate: 2% of max life per second
-5. Multiple instances stack but total capped at 20% of max life per second
+2. Base leech = Damage × Leech Rate (e.g., 2000 damage × 5% = 100 life)
+3. Monster Leech Resistance reduces this: Effective = Base × (1 - Monster_Leech_Res%)
+4. A leech instance is created that recovers the full amount over 1 SECOND (base)
+5. NO CAP on total leech - unlimited instances can stack
 6. Leech stops at full life UNLESS you have Overleech
 7. With Overleech, instances continue past full life (healing buffer)
 """,
             calculation_formula="""
-Leech Per Hit = Damage_Dealt × Leech_Rate%
+Leech Per Hit = Damage_Dealt × Leech_Rate% × (1 - Monster_Leech_Resistance%)
 
-Instance Recovery Rate = 2% of Max Life per second (default)
-Maximum Total Leech Rate = 20% of Max Life per second (cap)
+Recovery Duration = 1 second (base, modifiable by 'leech faster/slower')
+Recovery Per Second = Leech_Amount / Recovery_Duration
 
 Example:
-- 5% physical leech, 2000 damage hit, 3000 max life
-- Leech amount = 2000 × 0.05 = 100 life
-- Instance rate = 3000 × 0.02 = 60 life/sec
-- Instance duration = 100 / 60 = 1.67 seconds
-- Max total leech = 3000 × 0.20 = 600 life/sec
+- 5% physical leech, 2000 damage hit, monster has 30% leech resistance
+- Base leech = 2000 × 0.05 = 100 life
+- Effective leech = 100 × (1 - 0.30) = 70 life
+- Recovery = 70 life over 1 second = 70 life/sec per instance
 
-With rapid attacks, you'll quickly hit the 600/sec cap.
-More leech % doesn't help once capped - need faster leech rate modifiers.
+Multiple hits = multiple instances = multiplicative recovery (no cap!)
+- 10 hits/second × 70 life/instance = 700 life/sec total
+
+Modifiers:
+- 'Leech X% faster' = shorter recovery duration (more life/sec)
+- 'Leech X% slower' = longer recovery duration (less life/sec, but longer overleech)
 """,
             examples=[
                 "5% physical leech on a ring means 5% of physical damage heals you",
-                "Life Leech Support gem adds leech to linked skills",
-                "Overleech from Fast Metabolism lets leech continue at full life",
-                "At 20% leech cap with 3000 life, you recover max 600 life/sec"
+                "Life Leech I: 12% physical leech",
+                "Life Leech II: 16% physical leech",
+                "Life Leech III: 16% physical + OVERLEECH (leech continues at full life)",
+                "Fast Metabolism: Overleech + leech expires 20% slower (1.25s duration)",
+                "Savoured Blood passive: +35% leech amount, 20% slower (good for overleech builds)"
             ],
             common_questions={
-                "What is the leech rate cap?": "Default 20% of max life per second. All leech instances combined cannot exceed this.",
-                "What is overleech?": "Normally leech stops at full life. Overleech lets it continue, creating a healing buffer.",
-                "Does elemental damage leech?": "Only physical by default. Need specific sources (Mystic Harvest, items) for elemental leech.",
-                "Is more leech % always better?": "Only until you hit the cap. Past that, you need 'faster leech rate' modifiers.",
-                "Do I need Life Leech support if I have leech on gear?": "Maybe not - depends on whether you're hitting the cap. One source is often enough."
+                "What is the leech cap in PoE2?": "There is NO cap! PoE2 removed the 20% max life/sec cap from PoE1. Balance comes from monster leech resistance instead.",
+                "What is monster leech resistance?": "Monsters have innate resistance that reduces leech effectiveness. Scales with monster level. Exact formula is not public.",
+                "What is overleech?": "Normally leech stops at full life. Overleech lets it continue, creating a healing buffer against incoming damage.",
+                "Does elemental damage leech?": "Only physical by default. Need specific sources (Mystic Harvest, items, passives) for elemental leech.",
+                "Is more leech % always better?": "In PoE2, yes! There's no cap, so more leech = more recovery. Monster resistance is the limiting factor.",
+                "Do I need Life Leech support if I have leech on gear?": "Depends on your leech rate and attack speed. More sources = more recovery since there's no cap.",
+                "Life Leech III vs Life Leech II?": "Both give 16% leech, but III provides OVERLEECH. Get III for sustain builds."
             },
             related_mechanics=['life', 'energy_shield', 'mana_leech', 'overleech'],
             important_notes=[
-                "Default leech cap: 20% of max life per second",
-                "Instance rate: 2% of max life per second",
-                "Leech STOPS at full life without Overleech",
+                "NO LEECH CAP in PoE2 - this is a major change from PoE1",
+                "Monster leech resistance scales with level (exact formula unknown)",
+                "Base recovery duration: 1 second per instance",
                 "Physical damage leech is most common",
                 "Elemental leech requires specific sources",
-                "More leech % has diminishing returns past cap"
+                "Overleech sources: Life Leech III, Fast Metabolism, Couture of Crimson",
+                "Leech 'faster' = more recovery/sec, 'slower' = longer overleech duration"
             ],
             changed_from_poe1="""
-CHANGES from PoE1:
-- Leech cap system is similar but values may differ
-- Overleech is now available from tree (Fast Metabolism) and gear
-- Vaal Pact-style instant leech has been reworked
-- Spirit system interacts with some leech-related skills
+MAJOR CHANGES from PoE1:
+- NO 20% max life/sec leech cap (PoE1 had hard cap)
+- NO 2% instance rate (PoE2 uses fixed 1 second recovery)
+- Monster Leech Resistance added as balancing mechanism (scales with level)
+- Vaal Pact now only disables life flasks (not all life recovery like PoE1)
+- Overleech is now accessible from gems (Life Leech III) and passives (Fast Metabolism)
+- 'Leech faster/slower' modifiers affect the 1 second base duration
 """
         )
 

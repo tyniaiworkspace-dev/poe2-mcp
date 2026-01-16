@@ -5021,6 +5021,11 @@ Could not extract account and character from URL.
         if gear_section:
             response += gear_section
 
+        # Add charms section (PoE2 triggered items)
+        charms_section = self._format_charms_section(character_data)
+        if charms_section:
+            response += charms_section
+
         if recommendations:
             response += f"\n## AI Recommendations\n{recommendations}"
 
@@ -5117,6 +5122,53 @@ Could not extract account and character from URL.
                 for item in slot_items:
                     name = item.get('name', '') or item.get('type_line', 'Unknown')
                     response += f"\n### {slot}: {name}\n"
+
+        return response
+
+    def _format_charms_section(self, character_data: dict) -> str:
+        """Format equipped charms from character data (PoE2 triggered items)"""
+        charms = character_data.get('charms', [])
+        if not charms:
+            return ""
+
+        response = "\n## Charms\n"
+        response += "*Charms are triggered items that activate on specific conditions*\n"
+
+        for i, charm in enumerate(charms, 1):
+            name = charm.get('name', '') or charm.get('type_line', 'Unknown Charm')
+            type_line = charm.get('type_line', '')
+            rarity = charm.get('rarity', 0)
+            corrupted = " (Corrupted)" if charm.get('corrupted') else ""
+
+            # Format rarity display
+            if isinstance(rarity, int):
+                rarity_map = {0: 'Normal', 1: 'Magic', 2: 'Rare', 3: 'Unique'}
+                rarity_str = rarity_map.get(rarity, 'Unknown')
+            else:
+                rarity_str = str(rarity)
+
+            # Build charm header
+            if rarity_str == 'Unique':
+                response += f"\n### Charm {i}: {name}{corrupted}\n"
+            else:
+                response += f"\n### Charm {i}: {name or type_line}{corrupted}\n"
+
+            if type_line and type_line != name:
+                response += f"*{type_line}*\n"
+
+            # Show mods
+            mods = charm.get('mods', {})
+            if isinstance(mods, dict):
+                if mods.get('implicit'):
+                    for mod in mods['implicit']:
+                        response += f"- {mod} (implicit)\n"
+                if mods.get('explicit'):
+                    for mod in mods['explicit']:
+                        response += f"- {mod}\n"
+            elif isinstance(mods, list):
+                # Handle case where mods is just a list
+                for mod in mods:
+                    response += f"- {mod}\n"
 
         return response
 
