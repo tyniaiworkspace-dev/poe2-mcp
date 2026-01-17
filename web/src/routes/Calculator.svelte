@@ -14,39 +14,33 @@
   import SeedInput from '../components/SeedInput.svelte';
   import ResultsPanel from '../components/ResultsPanel.svelte';
 
-  let mapper = $state(null);
+  let mapper = null;
 
-  // Initialize mapper when data is loaded - Svelte 5 effect
-  $effect(() => {
-    if ($passiveTree && $spawnWeights && !mapper) {
-      mapper = new TimelessSeedMapper($spawnWeights, $passiveTree);
-    }
-  });
+  // Initialize mapper when data is loaded
+  $: if ($passiveTree && $spawnWeights && !mapper) {
+    mapper = new TimelessSeedMapper($spawnWeights, $passiveTree);
+  }
 
-  // Recalculate when inputs change - Svelte 5 effect
-  $effect(() => {
-    if (mapper && $selectedSocket && $currentSeed && $currentTribute) {
-      try {
-        const result = mapper.analyzeSeed(
-          $selectedSocket.nodeId,
-          $currentSeed,
-          $currentTribute,
-          JEWEL_RADIUS.VERY_LARGE
-        );
-        analysisResult.set(result);
-      } catch (err) {
-        console.error('Analysis error:', err);
-        analysisResult.set(null);
-      }
+  // Recalculate when inputs change
+  $: if (mapper && $selectedSocket && $currentSeed && $currentTribute) {
+    try {
+      const result = mapper.analyzeSeed(
+        $selectedSocket.nodeId,
+        $currentSeed,
+        $currentTribute,
+        JEWEL_RADIUS.VERY_LARGE
+      );
+      analysisResult.set(result);
+    } catch (err) {
+      console.error('Analysis error:', err);
+      analysisResult.set(null);
     }
-  });
+  }
 
-  // Auto-select first socket if none selected - Svelte 5 effect
-  $effect(() => {
-    if ($jewelSockets.length > 0 && !$selectedSocket) {
-      selectedSocket.set($jewelSockets[0]);
-    }
-  });
+  // Auto-select first socket if none selected
+  $: if ($jewelSockets.length > 0 && !$selectedSocket) {
+    selectedSocket.set($jewelSockets[0]);
+  }
 
   function handleSocketSelect(event) {
     const socket = event.detail;

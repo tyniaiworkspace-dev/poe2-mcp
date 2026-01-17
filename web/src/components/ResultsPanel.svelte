@@ -1,19 +1,19 @@
 <script>
   import { analysisResult } from '../lib/stores.js';
 
-  // Group transformed nodes by type - Svelte 5 derived
-  let notables = $derived($analysisResult?.transformedNodes?.filter(n => n.originalType === 'notable') || []);
-  let keystones = $derived($analysisResult?.transformedNodes?.filter(n => n.originalType === 'keystone') || []);
-  let smallNodes = $derived($analysisResult?.transformedNodes?.filter(n => n.originalType === 'small') || []);
+  // Group transformed nodes by type
+  $: notables = $analysisResult?.transformedNodes?.filter(n => n.originalType === 'notable') || [];
+  $: keystones = $analysisResult?.transformedNodes?.filter(n => n.originalType === 'keystone') || [];
+  $: smallNodes = $analysisResult?.transformedNodes?.filter(n => n.originalType === 'small') || [];
 
-  // Count notable occurrences - Svelte 5 derived
-  let notableDistribution = $derived(notables.reduce((acc, n) => {
+  // Count notable occurrences
+  $: notableDistribution = notables.reduce((acc, n) => {
     acc[n.newName] = (acc[n.newName] || 0) + 1;
     return acc;
-  }, {}));
+  }, {});
 
-  let sortedNotables = $derived(Object.entries(notableDistribution)
-    .sort((a, b) => b[1] - a[1]));
+  $: sortedNotables = Object.entries(notableDistribution)
+    .sort((a, b) => b[1] - a[1]);
 </script>
 
 <div class="results-panel">

@@ -4,6 +4,8 @@ export default {
   preprocess: vitePreprocess(),
   compilerOptions: {
     // Enable runtime checks in dev
-    dev: true
+    dev: true,
+    // Disable runes mode - use legacy Svelte 4 reactivity
+    runes: false
   }
 };
