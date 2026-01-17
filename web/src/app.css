@@ -1,0 +1,76 @@
+/* PoE2 Undying Hate Calculator - Global Styles */
+
+:root {
+  /* Dark theme colors inspired by PoE */
+  --bg-primary: #0a0a0c;
+  --bg-secondary: #12121a;
+  --bg-tertiary: #1a1a24;
+  --border: #2a2a3a;
+  --text-primary: #e0e0e0;
+  --text-secondary: #8a8a9a;
+  --accent: #af6025;
+  --accent-hover: #cf7030;
+  --accent-dim: rgba(175, 96, 37, 0.2);
+
+  /* Node type colors */
+  --keystone-color: #a54a4a;
+  --notable-color: #4a6fa5;
+  --socket-color: #4aa54a;
+  --small-color: #444;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Selection styling */
+::selection {
+  background: var(--accent);
+  color: white;
+}
