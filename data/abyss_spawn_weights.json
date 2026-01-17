@@ -1,0 +1,205 @@
+{
+  "metadata": {
+    "source_file": "C:\\Users\\tanki\\poe2-mcp\\data\\extracted\\data\\alternatepassiveskills.datc64",
+    "extraction_date": "2026-01-16T21:45:51.335808Z",
+    "tree_version": 7,
+    "faction": "Abyss",
+    "jewel_name": "Undying Hate",
+    "total_keystones": 5,
+    "total_notables": 30
+  },
+  "keystones": [
+    {
+      "id": "abyss_keystone_1",
+      "name": "Sacrifice of Flesh",
+      "leader": "Amanamu",
+      "spawn_weight": 100,
+      "flavor_text": "I pledge my soul to you, Liege of the Lightless, and vow to conquer nations in your name!"
+    },
+    {
+      "id": "abyss_keystone_2",
+      "name": "Sacrifice of Loyalty",
+      "leader": "Ulaman",
+      "spawn_weight": 100,
+      "flavor_text": "I pledge my soul to you, Lord of Liches, and vow to end the scourge of Life itself!"
+    },
+    {
+      "id": "abyss_keystone_3",
+      "name": "Sacrifice of Mind",
+      "leader": "Kurgal",
+      "spawn_weight": 100,
+      "flavor_text": "I pledge my soul to you, the Blackblooded, and vow to usurp the power of Darkness!"
+    },
+    {
+      "id": "abyss_keystone_4",
+      "name": "Sacrifice of Blood",
+      "leader": "Tacati",
+      "spawn_weight": 100,
+      "flavor_text": "I pledge my soul to you, Hated Slave, and vow to exact revenge upon your kind!"
+    },
+    {
+      "id": "abyss_keystone_5",
+      "name": "Sacrifice of Sight",
+      "leader": "Doryani",
+      "spawn_weight": 100,
+      "flavor_text": "I pledge my soul to you, Sovereign of the Well, and vow to bring eternal night!"
+    }
+  ],
+  "notables": [
+    {
+      "id": "abyss_notable_1",
+      "name": "Disciple of Darkness",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_2",
+      "name": "Creature of Death",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_3",
+      "name": "Creature of Magic",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_4",
+      "name": "Quickened Corpses",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_5",
+      "name": "Ambivalent Command",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_6",
+      "name": "Boneshedder",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_7",
+      "name": "Unfiltered Brutality",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_8",
+      "name": "Derogatory Gaze",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_9",
+      "name": "Abyssal Conduit",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_10",
+      "name": "Expidited Horrors",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_11",
+      "name": "Confined Exaltation",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_12",
+      "name": "Arcane Ascension",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_13",
+      "name": "Ravenous Mind",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_14",
+      "name": "Gluttenous Presence",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_15",
+      "name": "Unrestrained Intellect",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_16",
+      "name": "Cruel Strength",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_17",
+      "name": "Opportunistic Dexterity",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_18",
+      "name": "Unreal Potential",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_19",
+      "name": "I Have Darkvision",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_20",
+      "name": "Domineering Commands",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_21",
+      "name": "Worthy Tithes",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_22",
+      "name": "Buried Animosity",
+      "spawn_weight": 0
+    },
+    {
+      "id": "abyss_notable_23",
+      "name": "Fast Rot",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_24",
+      "name": "Hollow Bones",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_25",
+      "name": "Ancient Bastion",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_26",
+      "name": "Deformed Steel",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_27",
+      "name": "Mystic Brew",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_28",
+      "name": "Resilient Wards",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_29",
+      "name": "Dreadful Fortitude",
+      "spawn_weight": 100
+    },
+    {
+      "id": "abyss_notable_30",
+      "name": "Barbed Allegiance",
+      "spawn_weight": 100
+    }
+  ],
+  "small_passive": {
+    "id": "abyss_small_tribute",
+    "name": "Tribute",
+    "spawn_weight": 100
+  }
+}
