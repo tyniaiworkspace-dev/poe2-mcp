@@ -1,5 +1,5 @@
 <script>
-  import { createEventDispatcher, onMount } from 'svelte';
+  import { createEventDispatcher } from 'svelte';
   import {
     passiveTree,
     selectedSocket,
@@ -13,29 +13,29 @@
 
   const dispatch = createEventDispatcher();
 
-  let svgElement;
-  let viewBox = { x: -15000, y: -15000, width: 30000, height: 30000 };
-  let isDragging = false;
-  let dragStart = { x: 0, y: 0 };
-  let scale = 1;
+  let svgElement = $state(null);
+  let viewBox = $state({ x: -15000, y: -15000, width: 30000, height: 30000 });
+  let isDragging = $state(false);
+  let dragStart = $state({ x: 0, y: 0 });
+  let scale = $state(1);
 
   // Transform tree coordinates to view coordinates
   function getNodePosition(node) {
     return { x: node.x || 0, y: node.y || 0 };
   }
 
-  // Get nodes affected by selected socket
-  $: affectedNodeIds = new Set(
+  // Get nodes affected by selected socket - Svelte 5 derived
+  let affectedNodeIds = $derived(new Set(
     ($analysisResult?.transformedNodes || []).map(n => n.originalNodeId)
-  );
+  ));
 
-  // Get transformed node info by original ID
-  $: transformedMap = new Map(
+  // Get transformed node info by original ID - Svelte 5 derived
+  let transformedMap = $derived(new Map(
     ($analysisResult?.transformedNodes || []).map(n => [n.originalNodeId, n])
-  );
+  ));
 
-  // Filter visible nodes (exclude ascendancy, show relevant ones)
-  $: visibleNodes = Object.entries($passiveTree || {})
+  // Filter visible nodes (exclude ascendancy, show relevant ones) - Svelte 5 derived
+  let visibleNodes = $derived(Object.entries($passiveTree || {})
     .filter(([id, node]) => {
       if (node.is_ascendancy) return false;
       if (!node.x || !node.y) return false;
@@ -45,7 +45,7 @@
       id: parseInt(id),
       ...node,
       pos: getNodePosition(node)
-    }));
+    })));
 
   function handleWheel(e) {
     e.preventDefault();
@@ -145,10 +145,12 @@
     };
   }
 
-  // Center on selected socket when it changes
-  $: if ($selectedSocket) {
-    centerOnSocket($selectedSocket);
-  }
+  // Center on selected socket when it changes - Svelte 5 effect
+  $effect(() => {
+    if ($selectedSocket) {
+      centerOnSocket($selectedSocket);
+    }
+  });
 
   function resetView() {
     viewBox = { x: -15000, y: -15000, width: 30000, height: 30000 };
