@@ -206,6 +206,9 @@ yarn-error.log*
 dist/
 build/
 
+# Exception for web app lib folder (not Python lib/)
+!web/src/lib/
+
 # Alembic
 alembic.ini.bak
 
