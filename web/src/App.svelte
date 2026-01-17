@@ -35,8 +35,8 @@
     }
   });
 
-  // Simple hash router - Svelte 5 derived rune
-  let route = $derived($currentRoute.replace('#', '') || '/');
+  // Simple hash router
+  $: route = $currentRoute.replace('#', '') || '/';
 </script>
 
 <div class="app">
