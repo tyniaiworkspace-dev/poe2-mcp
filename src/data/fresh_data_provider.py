@@ -475,7 +475,8 @@ class FreshDataProvider:
         """Get support gem data by display name (case-insensitive)."""
         name_lower = name.lower().replace(' support', '').replace('support ', '').strip()
         for gem_id, gem_data in self._support_gems.items():
-            gem_name = gem_data.get('name', '').lower()
+            # Use 'display_name' field - this is what complete_models/support_gems.json uses
+            gem_name = gem_data.get('display_name', gem_data.get('name', '')).lower()
             # Check exact match
             if gem_name == name_lower or gem_name == name.lower():
                 return gem_data
@@ -494,7 +495,8 @@ class FreshDataProvider:
         query_lower = query.lower()
         results = []
         for gem_id, gem_data in self._support_gems.items():
-            name = gem_data.get('name', '').lower()
+            # Use 'display_name' field - this is what complete_models/support_gems.json uses
+            name = gem_data.get('display_name', gem_data.get('name', '')).lower()
             if query_lower in name or query_lower in gem_id.lower():
                 results.append(gem_data)
         return results
