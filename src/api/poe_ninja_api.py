@@ -380,6 +380,18 @@ class PoeNinjaAPI:
                     }
                 })
 
+        # Separate charms from flasks (poe.ninja puts both in "flasks" array)
+        # Charms have "Charm" in their baseType
+        raw_flasks = api_data.get("flasks", [])
+        actual_flasks = []
+        actual_charms = []
+        for item in raw_flasks:
+            base_type = item.get("itemData", {}).get("baseType", "")
+            if "Charm" in base_type:
+                actual_charms.append(item)
+            else:
+                actual_flasks.append(item)
+
         # Build normalized data structure
         # Detect ascendancy from class field
         raw_class = api_data.get("class", "Unknown")
@@ -403,9 +415,11 @@ class PoeNinjaAPI:
             "league": api_data.get("league", "Unknown"),
 
             # Items with details
+            # Use inventoryId from itemData for string slot names (Helm, Gloves, etc.)
+            # Falls back to numeric itemSlot if inventoryId is missing
             "items": [
                 {
-                    "slot": item.get("itemSlot", 0),
+                    "slot": item.get("itemData", {}).get("inventoryId", f"Slot{item.get('itemSlot', 0)}"),
                     "name": item.get("itemData", {}).get("name", ""),
                     "type_line": item.get("itemData", {}).get("typeLine", ""),
                     "base_type": item.get("itemData", {}).get("baseType", ""),
@@ -444,7 +458,7 @@ class PoeNinjaAPI:
                 for keystone in api_data.get("keystones", [])
             ],
 
-            # Flasks
+            # Flasks (actual flasks only, charms are separated)
             "flasks": [
                 {
                     "name": flask.get("itemData", {}).get("typeLine", "Unknown Flask"),
@@ -453,7 +467,7 @@ class PoeNinjaAPI:
                     "mods": flask.get("itemData", {}).get("explicitMods", []),
                     "icon": flask.get("itemData", {}).get("icon", "")
                 }
-                for flask in api_data.get("flasks", [])
+                for flask in actual_flasks
             ],
 
             # Jewels
@@ -472,7 +486,7 @@ class PoeNinjaAPI:
                 for jewel in api_data.get("jewels", [])
             ],
 
-            # Charms (PoE2 new item type - triggered effects)
+            # Charms (PoE2 new item type - triggered effects, extracted from flasks array)
             "charms": [
                 {
                     "name": charm.get("itemData", {}).get("name") or charm.get("itemData", {}).get("typeLine", "Unknown Charm"),
@@ -484,10 +498,11 @@ class PoeNinjaAPI:
                     "mods": {
                         "implicit": charm.get("itemData", {}).get("implicitMods", []),
                         "explicit": charm.get("itemData", {}).get("explicitMods", []),
+                        "utility": charm.get("itemData", {}).get("utilityMods", []),
                     },
                     "icon": charm.get("itemData", {}).get("icon", "")
                 }
-                for charm in api_data.get("charms", [])
+                for charm in actual_charms
             ],
 
             # Path of Building export
