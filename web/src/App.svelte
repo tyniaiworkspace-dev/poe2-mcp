@@ -6,7 +6,8 @@
     spawnWeights,
     isLoading,
     loadError,
-    navigate
+    navigate,
+    initRouteListener
   } from './lib/stores.js';
 
   import Home from './routes/Home.svelte';
@@ -14,6 +15,9 @@
 
   // Load data on mount
   onMount(async () => {
+    // Initialize route listener (must be in component lifecycle for Svelte 5)
+    initRouteListener();
+
     try {
       // Load passive tree data
       const treeResponse = await fetch('./data/passive_tree.json');

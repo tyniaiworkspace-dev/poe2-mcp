@@ -51,13 +51,19 @@ export const tooltipData = writable(null);
 export const tooltipPosition = writable({ x: 0, y: 0 });
 
 // Current route (hash-based)
-export const currentRoute = writable(window.location.hash || '#/');
+// Initial value set safely for SSR/build compatibility
+export const currentRoute = writable(typeof window !== 'undefined' ? window.location.hash || '#/' : '#/');
 
-// Listen for hash changes
-if (typeof window !== 'undefined') {
-  window.addEventListener('hashchange', () => {
-    currentRoute.set(window.location.hash || '#/');
-  });
+/**
+ * Initialize hash change listener. Call this from App.svelte onMount.
+ * Svelte 5 doesn't allow module-level side effects.
+ */
+export function initRouteListener() {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('hashchange', () => {
+      currentRoute.set(window.location.hash || '#/');
+    });
+  }
 }
 
 /**
