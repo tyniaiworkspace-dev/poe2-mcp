@@ -4006,10 +4006,11 @@ Could not extract account and character from URL.
             )]
 
         # Now fetch and analyze using existing handler
+        # Default to current league (Vaal = Fate of the Vaal)
         return await self._handle_analyze_character({
             "account": account,
             "character": character,
-            "league": "Abyss"
+            "league": "Vaal"
         })
 
     # ============================================================================
