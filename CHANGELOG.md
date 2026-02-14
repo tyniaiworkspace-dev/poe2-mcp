@@ -7,6 +7,18 @@ Format based on Path of Building changelog style, adapted for MCP tooling.
 
 ---
 
+## Fork: Cursor & IDE compatibility (tyniaiworkspace-dev)
+
+Fork of HivemindOverlord/poe2-mcp with fixes for Cursor and other IDEs. No capability removed; all 32 tools preserved.
+
+* **Entry points:** Sync `main()` for `poe2-mcp` console script; `launch.py` now calls `_main_async()` so both pip install and `python launch.py` work.
+* **Pagination:** `get_pagination_args()` and `PaginationMeta` int coercion so limit/offset from MCP clients (string or int) work; "use offset=..." uses correct ints.
+* **Logging:** Default log level WARNING; DEBUG only when `POE2_MCP_DEBUG` or `LOG_LEVEL=DEBUG` to avoid IDE stderr spam.
+* **Scraper:** poe2db URL set to `/us/Unique_item`; link-based fallback when page has no tables so uniques scrape reliably.
+* **Support gems:** When FreshDataProvider has no support gems (e.g. no .datc64), load from `data/poe2_support_gems_database.json` so `list_all_supports` works on first install.
+
+---
+
 ## Version 1.0.0 (2025-12-16) - First Major Release
 
 The first stable release of the PoE2 Build Optimizer MCP server. Provides 32 MCP tools for AI-powered character analysis and build optimization.

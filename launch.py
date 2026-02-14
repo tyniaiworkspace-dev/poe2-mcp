@@ -197,8 +197,8 @@ async def start_mcp_server():
     print_info("Starting MCP server...")
 
     try:
-        from src.mcp_server import main
-        await main()
+        from src.mcp_server import _main_async
+        await _main_async()
     except KeyboardInterrupt:
         print_info("\nShutting down server...")
     except Exception as e:

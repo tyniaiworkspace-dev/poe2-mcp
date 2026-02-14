@@ -4,6 +4,8 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> **Fork note:** This is a community fork of [HivemindOverlord/poe2-mcp](https://github.com/HivemindOverlord/poe2-mcp), maintained for use with Cursor and other IDEs. Fixes in this fork: sync `main()` for pip/console script + `launch.py` uses async entry; pagination limit/offset and int coercion; default log level WARNING (DEBUG via `POE2_MCP_DEBUG` or `LOG_LEVEL=DEBUG`); poe2db Unique_item URL and link-based fallback; support gems JSON fallback when no .datc64 data. Upstream: [github.com/HivemindOverlord/poe2-mcp](https://github.com/HivemindOverlord/poe2-mcp).
+
 > **Community Project Disclaimer**
 >
 > This is an independent, fan-made community project built out of love for Path of Exile 2. It is **not affiliated with, endorsed by, or officially connected to Grinding Gear Games** in any way. Path of Exile is a trademark of Grinding Gear Games. All game data and assets remain the property of their respective owners.
