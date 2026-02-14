@@ -54,8 +54,8 @@ class PoE2DataScraper:
         items = []
 
         try:
-            # poe2db.tw unique items URL
-            url = f"{self.base_url}/us/Unique_items"
+            # poe2db.tw uses Unique_item (singular), not Unique_items
+            url = f"{self.base_url}/us/Unique_item"
             await self.rate_limiter.acquire()
 
             response = await self.client.get(url)
@@ -65,7 +65,7 @@ class PoE2DataScraper:
 
             soup = BeautifulSoup(response.text, 'html.parser')
 
-            # Find item tables
+            # Find item tables (legacy table layout)
             tables = soup.find_all('table', class_=['item', 'wikitable'])
 
             for table in tables:
@@ -86,6 +86,10 @@ class PoE2DataScraper:
 
                 if limit and len(items) >= limit:
                     break
+
+            # Fallback: poe2db.tw Unique_item page uses link-based item cards, not tables
+            if not items:
+                items = self._scrape_unique_items_from_links(soup, limit)
 
             logger.info(f"Scraped {len(items)} unique items")
             return items
@@ -135,6 +139,52 @@ class PoE2DataScraper:
         except Exception as e:
             logger.debug(f"Error parsing item row: {e}")
             return None
+
+    def _scrape_unique_items_from_links(
+        self, soup: BeautifulSoup, limit: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Fallback when Unique_item page has no table: collect links matching /us/[A-Za-z0-9_%]+,
+        skip known non-item paths (Version_, Act_, Quest_, etc.), build one item per link.
+        """
+        items: List[Dict[str, Any]] = []
+        # Paths that are not unique items (category or meta pages)
+        skip_prefixes = (
+            "Version_", "Act_", "Quest_", "Skill_Gems", "Support_Gems", "Unique_item",
+            "Weapons", "Armours", "Accessories", "Item_Classes", "Modifiers", "Passive",
+            "Labyrinth", "Ascendancy", "Jewel", "Flasks", "Maps", "Currency",
+        )
+        # Match /us/SomethingLikeThis (item slug)
+        link_pattern = re.compile(r"^/us/([A-Za-z0-9_%]+)$")
+
+        for a in soup.find_all("a", href=True):
+            href = (a.get("href") or "").strip()
+            if not href.startswith("/us/"):
+                continue
+            # Normalize: remove query/fragment
+            path = href.split("?")[0].split("#")[0]
+            m = link_pattern.match(path)
+            if not m:
+                continue
+            slug = m.group(1)
+            if any(slug.startswith(p) or slug == p for p in skip_prefixes):
+                continue
+            name = (a.get_text() or "").strip()
+            if not name or len(name) < 2:
+                continue
+            items.append({
+                "name": name,
+                "base_type": "Unique",
+                "item_class": self._classify_item("Unique"),
+                "level_requirement": 0,
+                "rarity": "Unique",
+                "url": f"{self.base_url}{path}",
+                "source": "poe2db.tw",
+                "scraped_at": datetime.utcnow().isoformat(),
+            })
+            if limit and len(items) >= limit:
+                break
+        return items
 
     def _classify_item(self, base_type: str) -> str:
         """Classify item based on base type"""
