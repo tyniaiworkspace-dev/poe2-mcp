@@ -131,7 +131,35 @@ class FreshDataProvider:
 
         # Save to cache
         self._save_to_cache()
+
+        # Fallback: when no .datc64 or complete_models, load support gems from package JSON
+        # so list_all_supports works on first-time install without game files
+        if not self._support_gems:
+            self._load_support_gems_json_fallback()
+
         logger.info("Fresh data extraction complete")
+
+    def _load_support_gems_json_fallback(self) -> None:
+        """Load support gems from poe2_support_gems_database.json when extraction yielded none."""
+        path = BASE_DIR / "data" / "poe2_support_gems_database.json"
+        if not path.exists():
+            logger.debug(f"Support gems JSON fallback not found: {path}")
+            return
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            gems = data.get("support_gems", data) if isinstance(data, dict) else {}
+            for gem_id, gem_data in gems.items():
+                if not isinstance(gem_data, dict):
+                    continue
+                # list_all_supports expects display_name
+                entry = dict(gem_data)
+                if "display_name" not in entry:
+                    entry["display_name"] = entry.get("name", gem_id)
+                self._support_gems[gem_id] = entry
+            logger.info(f"Loaded {len(self._support_gems)} support gems from JSON fallback")
+        except Exception as e:
+            logger.warning(f"Failed to load support gems JSON fallback: {e}")
 
     def _load_from_complete_models(self) -> bool:
         """Load from complete_models directory (best quality data)."""
