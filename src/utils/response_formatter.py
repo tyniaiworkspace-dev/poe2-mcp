@@ -18,11 +18,17 @@ OutputFormat = Literal["markdown", "compact"]
 
 @dataclass
 class PaginationMeta:
-    """Pagination metadata for list responses"""
+    """Pagination metadata for list responses. Coerces values to int for JSON/string args."""
     total: int
     limit: int
     offset: int
     showing: int
+
+    def __post_init__(self) -> None:
+        self.total = int(self.total)
+        self.limit = int(self.limit)
+        self.offset = int(self.offset)
+        self.showing = int(self.showing)
 
     @property
     def has_more(self) -> bool:
@@ -143,7 +149,7 @@ def format_pagination_header(meta: PaginationMeta, format: OutputFormat = "markd
     if meta.offset > 0:
         header += f" (offset: {meta.offset})"
     if meta.has_more:
-        header += f" - use offset={meta.offset + meta.limit} for more"
+        header += f" - use offset={int(meta.offset) + int(meta.limit)} for more"
     return header
 
 
@@ -175,7 +181,7 @@ def format_list_response(
     if meta.offset > 0:
         response += f"*Offset: {meta.offset}*\n"
     if meta.has_more:
-        response += f"*Use offset={meta.offset + meta.limit} for more results*\n"
+        response += f"*Use offset={int(meta.offset) + int(meta.limit)} for more results*\n"
     response += "\n"
 
     if item_formatter:

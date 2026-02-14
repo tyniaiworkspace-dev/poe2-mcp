@@ -7,6 +7,7 @@ Main server implementation with MCP protocol support
 import asyncio
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -91,25 +92,40 @@ except ImportError:
 # Setup logging to both file and stderr (for Claude Desktop logs)
 import sys
 
-# Configure logging to stderr for Claude Desktop
+# Configure logging: default WARNING so Cursor/IDE doesn't show stderr as "errors".
+# Set POE2_MCP_DEBUG=1 or LOG_LEVEL=DEBUG for verbose logs.
+_log_level = logging.WARNING
+if os.environ.get("POE2_MCP_DEBUG") or os.environ.get("LOG_LEVEL", "").upper() == "DEBUG":
+    _log_level = logging.DEBUG
 logging.basicConfig(
-    level=logging.DEBUG,  # Use DEBUG for detailed logs
+    level=_log_level,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler(sys.stderr),  # Log to stderr for Claude Desktop
+        logging.StreamHandler(sys.stderr),
     ]
 )
+logging.getLogger().setLevel(_log_level)
 logger = logging.getLogger(__name__)
 
-# Also log to stderr directly for immediate visibility
+# Only print to stderr when verbose mode is on (avoids Cursor showing everything as [error])
 def debug_log(message):
-    """Direct logging to stderr for Claude Desktop"""
-    print(f"[MCP-SERVER] {message}", file=sys.stderr, flush=True)
+    """Log to stderr only when POE2_MCP_DEBUG or LOG_LEVEL=DEBUG is set."""
+    if os.environ.get("POE2_MCP_DEBUG") or os.environ.get("LOG_LEVEL", "").upper() == "DEBUG":
+        print(f"[MCP-SERVER] {message}", file=sys.stderr, flush=True)
 
 debug_log("=== PoE2 Build Optimizer MCP Server ===")
 debug_log(f"Python version: {sys.version}")
 debug_log(f"Working directory: {Path.cwd()}")
 debug_log(f"Script location: {__file__}")
+
+
+def get_pagination_args(args: dict, default_limit: int = 20, max_limit: int = 100) -> tuple:
+    """Return (limit, offset) as validated ints. MCP clients may send them as strings."""
+    limit = args.get("limit", default_limit)
+    offset = args.get("offset", 0)
+    limit = min(max(1, int(limit)), max_limit)
+    offset = max(0, int(offset))
+    return (limit, offset)
 
 
 class PoE2BuildOptimizerMCP:
@@ -3344,8 +3360,7 @@ Consider:
             min_spirit = args.get("min_spirit")
             max_spirit = args.get("max_spirit")
             sort_by = args.get("sort_by", "name")
-            limit = args.get("limit", 20)
-            offset = args.get("offset", 0)
+            limit, offset = get_pagination_args(args)
             detail = args.get("detail", "standard")
             output_format = args.get("format", "markdown")
 
@@ -3454,8 +3469,7 @@ Consider:
             filter_tags = args.get("filter_tags", [])
             min_damage = args.get("min_damage")
             sort_by = args.get("sort_by", "name")
-            limit = args.get("limit", 20)
-            offset = args.get("offset", 0)
+            limit, offset = get_pagination_args(args)
             detail = args.get("detail", "standard")
             output_format = args.get("format", "markdown")
 
@@ -4033,8 +4047,7 @@ Could not extract account and character from URL.
 
             filter_stat = args.get("filter_stat", "").lower()
             sort_by = args.get("sort_by", "name")
-            limit = args.get("limit", 20)
-            offset = args.get("offset", 0)
+            limit, offset = get_pagination_args(args)
             detail = args.get("detail", "standard")
             output_format = args.get("format", "markdown")
 
@@ -4171,7 +4184,7 @@ Could not extract account and character from URL.
                 )]
 
             filter_stat = args.get("filter_stat", "").lower()
-            limit = args.get("limit", 100)
+            limit, offset = get_pagination_args(args, default_limit=100, max_limit=100)
             sort_by = args.get("sort_by", "name")
 
             # Get notables from PassiveTreeResolver
@@ -4304,7 +4317,7 @@ Could not extract account and character from URL.
         try:
             filter_type = args.get("filter_type", "").lower()
             filter_name = args.get("filter_name", "").lower()
-            limit = args.get("limit", 100)
+            limit, offset = get_pagination_args(args, default_limit=100, max_limit=100)
 
             # Get base items from FreshDataProvider
             fresh_provider = get_fresh_data_provider()
@@ -4500,8 +4513,7 @@ Could not extract account and character from URL.
 
             generation_type = args.get("generation_type")
             filter_stat = args.get("filter_stat", "").strip().lower()
-            limit = args.get("limit", 20)
-            offset = args.get("offset", 0)
+            limit, offset = get_pagination_args(args)
             detail = args.get("detail", "standard")
             output_format = args.get("format", "markdown")
 
@@ -4569,7 +4581,7 @@ Could not extract account and character from URL.
         try:
             stat_keyword = args.get("stat_keyword", "").strip().lower()
             generation_type = args.get("generation_type")
-            limit = args.get("limit", 50)
+            limit, _ = get_pagination_args(args, default_limit=50, max_limit=100)
 
             if not stat_keyword:
                 return [types.TextContent(
@@ -4859,7 +4871,7 @@ Could not extract account and character from URL.
         try:
             generation_type = args.get("generation_type", "").upper()
             max_level = args.get("max_level", 100)
-            limit = min(args.get("limit", 100), 200)  # Cap at 200
+            limit, _ = get_pagination_args(args, default_limit=100, max_limit=200)
 
             if generation_type not in ["PREFIX", "SUFFIX"]:
                 return [types.TextContent(
@@ -5668,8 +5680,8 @@ Could not extract account and character from URL.
             debug_log("Cleanup complete")
 
 
-async def main():
-    """Main entry point"""
+async def _main_async():
+    """Async entry point (used by sync main() and __main__)."""
     debug_log("=== main() function called ===")
     try:
         debug_log("Creating PoE2BuildOptimizerMCP instance...")
@@ -5684,10 +5696,15 @@ async def main():
         raise
 
 
+def main():
+    """Sync entry point for console script (poe2-mcp). Runs async server."""
+    asyncio.run(_main_async())
+
+
 if __name__ == "__main__":
     debug_log("=== __main__ entry point ===")
     try:
-        asyncio.run(main())
+        asyncio.run(_main_async())
     except KeyboardInterrupt:
         debug_log("Server interrupted by user")
     except Exception as e:
